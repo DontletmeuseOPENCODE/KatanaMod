@@ -1,0 +1,13 @@
+name: KatanaMod
+version: '${version}'
+main: pl.szympixel.katanamod.KatanaModPlugin
+api-version: '1.20'
+commands:
+  katana:
+    description: Komenda do zarzadzania katanami
+    usage: /katana give <gracz> <rodzaj>
+    permission: katanamod.admin
+permissions:
+  katanamod.admin:
+    description: Pozwala na korzystanie z komendy katana
+    default: op
