@@ -4,7 +4,10 @@ A plugin for Paper 1.20.2 for adding custom Katanas with unique effects and mode
 ## Dostępne bronie:
 - **Wakizashi** (Trucizna na 5 sekund przy uderzeniu)
 - **Tantō** (Teleportacja za przeciwnika, 5 sek. cooldown)
-- **Tachi** [Pod prawym przyciskiem myszy dashujesz do przodu (jak spear z enchantem Lunge 3)]
+- **Tachi** (Dash do przodu na PPM, 20 sek. cooldown)
+- **Ōdachi** (Pajęczyna pod przeciwnikiem na PPM, 30 sek. cooldown)
+- **Chisa-katana** (Zamrożenie 5s + Ślepota 10s przy uderzeniu)
+- **Shuriken** (Rzucana broń, podpala na 1s, wraca przy chybieniu, max 16 w stosie)
 
 ## Jak pobrać i wgrać moda? (Tutorial)
 

@@ -11,6 +11,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -22,6 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Location;
+import org.bukkit.entity.Trident;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
@@ -121,6 +125,38 @@ public class KatanaHitListener implements Listener {
                 long timeLeft = 5000 - (currentTime - tantoCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Teleportacja gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
+        } else if ("chisa".equals(katanaType)) {
+            // Zamrożenie (Slow 10) na 5 sekund i Blindness na 10 sekund
+            victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
+            victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
+            player.sendMessage(ChatColor.RED + "Cień Chisa spowił twego wroga!");
+        }
+    }
+
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (!(event.getEntity() instanceof Trident)) return;
+        Trident trident = (Trident) event.getEntity();
+        ItemStack item = trident.getItemStack();
+        
+        if (!isKatana(item)) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        String type = meta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
+        if (!"shuriken".equals(type)) return;
+
+        if (event.getHitEntity() != null && event.getHitEntity() instanceof LivingEntity) {
+            LivingEntity victim = (LivingEntity) event.getHitEntity();
+            victim.setFireTicks(20); // 1 sekunda ognia
+            // Nie wraca - domyślne zachowanie trójzębu bez Loyalty
+        } else if (event.getHitBlock() != null) {
+            // Chybienie - powrót do gracza
+            if (trident.getShooter() instanceof Player) {
+                Player player = (Player) trident.getShooter();
+                player.getInventory().addItem(item);
+                trident.remove();
+                player.sendMessage(ChatColor.AQUA + "Shuriken powrócił!");
+            }
         }
     }
 
@@ -184,6 +220,38 @@ public class KatanaHitListener implements Listener {
             } else {
                 long timeLeft = 30000 - (currentTime - odachiCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Umiejętność gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+            }
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        ItemStack current = event.getCurrentItem();
+        ItemStack cursor = event.getCursor();
+
+        if (current == null || cursor == null) return;
+        if (current.getType() != Material.TRIDENT || cursor.getType() != Material.TRIDENT) return;
+
+        if (isKatana(current) && isKatana(cursor)) {
+            ItemMeta currentMeta = current.getItemMeta();
+            ItemMeta cursorMeta = cursor.getItemMeta();
+            
+            String currentType = currentMeta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
+            String cursorType = cursorMeta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
+
+            if ("shuriken".equals(currentType) && "shuriken".equals(cursorType)) {
+                if (event.getAction() == InventoryAction.PLACE_ALL || event.getAction() == InventoryAction.PLACE_ONE) {
+                    int total = current.getAmount() + cursor.getAmount();
+                    if (total <= 16) {
+                        current.setAmount(total);
+                        event.setCursor(null);
+                        event.setCancelled(true);
+                    } else {
+                        current.setAmount(16);
+                        cursor.setAmount(total - 16);
+                        event.setCancelled(true);
+                    }
+                }
             }
         }
     }

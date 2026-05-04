@@ -108,6 +108,49 @@ public class KatanaManager {
         return item;
     }
 
+    public ItemStack createChisaKatana() {
+        ItemStack item = new ItemStack(Material.IRON_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.RED + "Chisa-katana");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Krótkie, zabójcze ostrze o krwistym kolorze.");
+            lore.add(ChatColor.BLUE + "Efekt uderzenia: Zamrożenie (5s) + Ślepota (10s)");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
+            meta.setLore(lore);
+
+            meta.setCustomModelData(10005);
+
+            NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "chisa");
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    public ItemStack createShuriken() {
+        ItemStack item = new ItemStack(Material.TRIDENT);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.DARK_BLUE + "Shuriken");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Szybka broń miotana ninja.");
+            lore.add(ChatColor.GOLD + "Efekt: Podpalenie (1s)");
+            lore.add(ChatColor.AQUA + "Powraca przy chybieniu!");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
+            meta.setLore(lore);
+
+            meta.setCustomModelData(10006);
+
+            NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "shuriken");
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     public void registerRecipes() {
         ItemStack wakizashi = createWakizashi();
         NamespacedKey recipeKey = new NamespacedKey(plugin, "wakizashi_recipe");
@@ -157,6 +200,38 @@ public class KatanaManager {
 
         if (Bukkit.getRecipe(tachiRecipeKey) == null) {
             Bukkit.addRecipe(tachiRecipe);
+        }
+
+        // Receptura Chisa-katana
+        ItemStack chisa = createChisaKatana();
+        NamespacedKey chisaRecipeKey = new NamespacedKey(plugin, "chisa_recipe");
+        ShapedRecipe chisaRecipe = new ShapedRecipe(chisaRecipeKey, chisa);
+        chisaRecipe.shape(
+                "  R",
+                " R ",
+                "S  "
+        );
+        chisaRecipe.setIngredient('R', Material.REDSTONE);
+        chisaRecipe.setIngredient('S', Material.STICK);
+
+        if (Bukkit.getRecipe(chisaRecipeKey) == null) {
+            Bukkit.addRecipe(chisaRecipe);
+        }
+
+        // Receptura Shuriken
+        ItemStack shuriken = createShuriken();
+        NamespacedKey shurikenRecipeKey = new NamespacedKey(plugin, "shuriken_recipe");
+        ShapedRecipe shurikenRecipe = new ShapedRecipe(shurikenRecipeKey, shuriken);
+        shurikenRecipe.shape(
+                " I ",
+                "ISI",
+                " I "
+        );
+        shurikenRecipe.setIngredient('I', Material.IRON_INGOT);
+        shurikenRecipe.setIngredient('S', Material.IRON_NUGGET);
+
+        if (Bukkit.getRecipe(shurikenRecipeKey) == null) {
+            Bukkit.addRecipe(shurikenRecipe);
         }
     }
 }

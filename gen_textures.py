@@ -34,3 +34,11 @@ print("tachi_blade.png - #b87333 (miedź)")
 # Odachi blade - złoto #FFD700
 make_png([0xFF, 0xD7, 0x00], f'{base}/odachi_blade.png')
 print("odachi_blade.png - #FFD700 (złoto)")
+
+# Chisa blade - czerwony
+make_png([255, 0, 0], f'{base}/chisa_blade.png')
+print("chisa_blade.png - czerwony")
+
+# Shuriken blade - ciemnoniebieski
+make_png([0, 0, 139], f'{base}/shuriken_blade.png')
+print("shuriken_blade.png - ciemnoniebieski")

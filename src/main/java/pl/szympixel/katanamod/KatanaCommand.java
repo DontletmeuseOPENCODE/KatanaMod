@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class KatanaCommand implements CommandExecutor, TabCompleter {
-    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi");
+    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi", "chisa", "shuriken");
     private final KatanaManager katanaManager;
 
     public KatanaCommand(KatanaManager katanaManager) {
@@ -54,6 +54,8 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
             case "tanto":     katanaItem = katanaManager.createTanto();     break;
             case "tachi":     katanaItem = katanaManager.createTachi();     break;
             case "odachi":    katanaItem = katanaManager.createOdachi();    break;
+            case "chisa":     katanaItem = katanaManager.createChisaKatana(); break;
+            case "shuriken":  katanaItem = katanaManager.createShuriken();  break;
         }
 
         if (katanaItem == null) {
