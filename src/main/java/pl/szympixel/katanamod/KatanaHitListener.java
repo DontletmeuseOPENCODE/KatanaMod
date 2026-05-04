@@ -1,11 +1,14 @@
 package pl.szympixel.katanamod;
 
+import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -27,6 +30,30 @@ public class KatanaHitListener implements Listener {
     public KatanaHitListener(JavaPlugin plugin) {
         this.plugin = plugin;
         this.katanaKey = new NamespacedKey(plugin, KatanaManager.KATANA_TAG_KEY);
+    }
+
+    private boolean isKatana(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        return meta.getPersistentDataContainer().has(katanaKey, PersistentDataType.STRING);
+    }
+
+    @EventHandler
+    public void onEnchant(EnchantItemEvent event) {
+        if (isKatana(event.getItem())) {
+            event.setCancelled(true);
+            event.getEnchanter().sendMessage(ChatColor.RED + "Nie można zaklinać katan!");
+        }
+    }
+
+    @EventHandler
+    public void onAnvil(PrepareAnvilEvent event) {
+        ItemStack first = event.getInventory().getItem(0);
+        ItemStack second = event.getInventory().getItem(1);
+        if (isKatana(first) || isKatana(second)) {
+            event.setResult(null);
+        }
     }
 
     @EventHandler
