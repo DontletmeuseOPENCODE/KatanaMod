@@ -29,6 +29,7 @@ public class KatanaManager {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Krótki miecz samurajski.");
             lore.add(ChatColor.GREEN + "Efekt uderzenia: Trucizna (5 sek.)");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
             // Ustawienie CustomModelData pod zasoby wizualne (Resource Pack)
@@ -51,6 +52,7 @@ public class KatanaManager {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Krótkie ostrze o niesamowitej szybkości.");
             lore.add(ChatColor.AQUA + "Efekt uderzenia: Teleportacja za cel (Cooldown: 5s)");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
             meta.setCustomModelData(10002);
@@ -70,7 +72,8 @@ public class KatanaManager {
             meta.setDisplayName(ChatColor.YELLOW + "Tachi");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Długi miecz konnicy. Daje przewagę w walce.");
-            lore.add(ChatColor.GOLD + "[PPM] Dash do przodu (Cooldown: 5s)");
+            lore.add(ChatColor.GOLD + "[PPM] Dash do przodu (Cooldown: 20s)");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
             meta.setCustomModelData(10003);
