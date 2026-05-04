@@ -10,18 +10,24 @@ public class KatanaModPlugin extends JavaPlugin {
         getLogger().info("Inicjalizacja KatanaMod...");
 
         this.katanaManager = new KatanaManager(this);
-        // Rejestracja craftingu
         this.katanaManager.registerRecipes();
 
-        // Rejestracja listenera do ataków
-        getServer().getPluginManager().registerEvents(new KatanaHitListener(this), this);
-        
-        // Rejestracja komendy
+        KatanaHitListener hitListener = new KatanaHitListener(this);
+        getServer().getPluginManager().registerEvents(hitListener, this);
+
+        KatanaCommand katanaCmd = new KatanaCommand(katanaManager);
         if (getCommand("katana") != null) {
-            getCommand("katana").setExecutor(new KatanaCommand(katanaManager));
+            getCommand("katana").setExecutor(katanaCmd);
+            getCommand("katana").setTabCompleter(katanaCmd);
         }
 
-        getLogger().info("KatanaMod został pomyślnie uruchomiony!");
+        KatanaModCommand katanaModCmd = new KatanaModCommand(hitListener);
+        if (getCommand("katanamod") != null) {
+            getCommand("katanamod").setExecutor(katanaModCmd);
+            getCommand("katanamod").setTabCompleter(katanaModCmd);
+        }
+
+        getLogger().info("KatanaMod 1.3 uruchomiony pomyślnie!");
     }
 
     @Override

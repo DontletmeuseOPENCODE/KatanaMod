@@ -83,6 +83,28 @@ public class KatanaManager {
         return item;
     }
 
+    public ItemStack createOdachi() {
+        ItemStack item = new ItemStack(Material.IRON_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Ōdachi");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Legendarny miecz pól bitewnych.");
+            lore.add(ChatColor.LIGHT_PURPLE + "Tylko dla wybranych wojowników.");
+            lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
+            lore.add(ChatColor.AQUA + "[PPM] Pajęczyna pod wrogiem (Cooldown: 30s)");
+            meta.setLore(lore);
+
+            meta.setCustomModelData(10004);
+
+            NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "odachi");
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     public void registerRecipes() {
         ItemStack wakizashi = createWakizashi();
         NamespacedKey recipeKey = new NamespacedKey(plugin, "wakizashi_recipe");
