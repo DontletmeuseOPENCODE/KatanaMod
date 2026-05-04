@@ -63,6 +63,26 @@ public class KatanaManager {
         return item;
     }
 
+    public ItemStack createTachi() {
+        ItemStack item = new ItemStack(Material.IRON_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + "Tachi");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Długi miecz konnicy. Daje przewagę w walce.");
+            lore.add(ChatColor.GOLD + "[PPM] Dash do przodu (Cooldown: 5s)");
+            meta.setLore(lore);
+
+            meta.setCustomModelData(10003);
+
+            NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "tachi");
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     public void registerRecipes() {
         ItemStack wakizashi = createWakizashi();
         NamespacedKey recipeKey = new NamespacedKey(plugin, "wakizashi_recipe");
@@ -96,6 +116,22 @@ public class KatanaManager {
 
         if (Bukkit.getRecipe(tantoRecipeKey) == null) {
             Bukkit.addRecipe(tantoRecipe);
+        }
+
+        // Receptura Tachi
+        ItemStack tachi = createTachi();
+        NamespacedKey tachiRecipeKey = new NamespacedKey(plugin, "tachi_recipe");
+        ShapedRecipe tachiRecipe = new ShapedRecipe(tachiRecipeKey, tachi);
+        tachiRecipe.shape(
+                "  G",
+                " G ",
+                "S  "
+        );
+        tachiRecipe.setIngredient('G', Material.GOLD_INGOT);
+        tachiRecipe.setIngredient('S', Material.STICK);
+
+        if (Bukkit.getRecipe(tachiRecipeKey) == null) {
+            Bukkit.addRecipe(tachiRecipe);
         }
     }
 }

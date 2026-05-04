@@ -9,6 +9,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -26,6 +28,7 @@ public class KatanaHitListener implements Listener {
     private final JavaPlugin plugin;
     private final NamespacedKey katanaKey;
     private final HashMap<UUID, Long> tantoCooldowns = new HashMap<>();
+    private final HashMap<UUID, Long> tachiCooldowns = new HashMap<>();
 
     public KatanaHitListener(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -105,6 +108,41 @@ public class KatanaHitListener implements Listener {
                     }
                 }
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        // Reagujemy tylko na PPM (akcja RIGHT_CLICK_AIR lub RIGHT_CLICK_BLOCK) i tylko dla głównej ręki
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        org.bukkit.event.block.Action action = event.getAction();
+        if (action != org.bukkit.event.block.Action.RIGHT_CLICK_AIR
+                && action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+
+        Player player = event.getPlayer();
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+
+        if (!isKatana(weapon)) return;
+        ItemMeta meta = weapon.getItemMeta();
+        if (meta == null) return;
+
+        String katanaType = meta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
+        if (!"tachi".equals(katanaType)) return;
+
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+
+        if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 5000) {
+            // Dash do przodu: wektor kierunku patrzenia gracza, z pędem w górę
+            Vector dashVector = player.getLocation().getDirection().normalize().multiply(2.5);
+            dashVector.setY(0.4);
+            player.setVelocity(dashVector);
+
+            tachiCooldowns.put(playerId, currentTime);
+            player.sendMessage(ChatColor.YELLOW + "Dash!");
+        } else {
+            long timeLeft = 5000 - (currentTime - tachiCooldowns.get(playerId));
+            player.sendMessage(ChatColor.RED + "Dash będzie gotowy za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
         }
     }
 }

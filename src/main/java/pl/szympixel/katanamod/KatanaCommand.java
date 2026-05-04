@@ -56,10 +56,12 @@ public class KatanaCommand implements CommandExecutor {
             katanaItem = katanaManager.createWakizashi();
         } else if (type.equals("tanto")) {
             katanaItem = katanaManager.createTanto();
+        } else if (type.equals("tachi")) {
+            katanaItem = katanaManager.createTachi();
         }
 
         if (katanaItem == null) {
-            sender.sendMessage(ChatColor.RED + "Nieznany rodzaj katany. Dostępne: wakizashi, tanto");
+            sender.sendMessage(ChatColor.RED + "Nieznany rodzaj katany. Dostępne: wakizashi, tanto, tachi");
             return true;
         }
 
