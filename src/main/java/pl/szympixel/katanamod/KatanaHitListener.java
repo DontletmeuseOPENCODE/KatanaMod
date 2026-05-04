@@ -13,10 +13,16 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.Location;
+import org.bukkit.util.Vector;
+
+import java.util.HashMap;
+import java.util.UUID;
 
 public class KatanaHitListener implements Listener {
     private final JavaPlugin plugin;
     private final NamespacedKey katanaKey;
+    private final HashMap<UUID, Long> tantoCooldowns = new HashMap<>();
 
     public KatanaHitListener(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -48,8 +54,27 @@ public class KatanaHitListener implements Listener {
                     String katanaType = container.get(katanaKey, PersistentDataType.STRING);
                     
                     if ("wakizashi".equals(katanaType)) {
-                        // Trucizna na 2 sekundy (40 ticków), poziom 1 (amplifier 0)
-                        victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 40, 0));
+                        // Trucizna na 5 sekund (100 ticków), poziom 1 (amplifier 0)
+                        victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+                    } else if ("tanto".equals(katanaType)) {
+                        UUID playerId = player.getUniqueId();
+                        long currentTime = System.currentTimeMillis();
+                        if (!tantoCooldowns.containsKey(playerId) || currentTime - tantoCooldowns.get(playerId) >= 5000) {
+                            // Oblicz pozycję z tyłu celu (odwrotny kierunek patrzenia ofiary)
+                            Location victimLoc = victim.getLocation();
+                            Vector direction = victimLoc.getDirection().normalize();
+                            // Teleportujemy 1 blok za plecy
+                            Location behindLoc = victimLoc.clone().subtract(direction.multiply(1.5));
+                            behindLoc.setYaw(victimLoc.getYaw());
+                            behindLoc.setPitch(victimLoc.getPitch());
+
+                            player.teleport(behindLoc);
+                            tantoCooldowns.put(playerId, currentTime);
+                            player.sendMessage(org.bukkit.ChatColor.AQUA + "Teleportacja!");
+                        } else {
+                            long timeLeft = 5000 - (currentTime - tantoCooldowns.get(playerId));
+                            player.sendMessage(org.bukkit.ChatColor.RED + "Teleportacja będzie gotowa za " + (timeLeft / 1000.0) + " s.");
+                        }
                     }
                 }
             }

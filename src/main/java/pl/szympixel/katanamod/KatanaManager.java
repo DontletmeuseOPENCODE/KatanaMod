@@ -28,7 +28,7 @@ public class KatanaManager {
             meta.setDisplayName(ChatColor.DARK_PURPLE + "Wakizashi");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Krótki miecz samurajski.");
-            lore.add(ChatColor.GREEN + "Efekt uderzenia: Trucizna (2 sek.)");
+            lore.add(ChatColor.GREEN + "Efekt uderzenia: Trucizna (5 sek.)");
             meta.setLore(lore);
 
             // Ustawienie CustomModelData pod zasoby wizualne (Resource Pack)
@@ -37,6 +37,26 @@ public class KatanaManager {
             // Niewidoczny tag pozwalający zidentyfikować miecz jako konkretną katanę
             NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
             meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "wakizashi");
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    public ItemStack createTanto() {
+        ItemStack item = new ItemStack(Material.IRON_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Tantō");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Krótkie ostrze o niesamowitej szybkości.");
+            lore.add(ChatColor.AQUA + "Efekt uderzenia: Teleportacja za cel (Cooldown: 5s)");
+            meta.setLore(lore);
+
+            meta.setCustomModelData(10002);
+
+            NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "tanto");
 
             item.setItemMeta(meta);
         }
@@ -57,8 +77,25 @@ public class KatanaManager {
         recipe.setIngredient('S', Material.STICK);
 
         // Zarejestruj recepturę tylko, jeśli jeszcze jej nie ma
+        // Receptura Wakizashi
         if (Bukkit.getRecipe(recipeKey) == null) {
             Bukkit.addRecipe(recipe);
+        }
+
+        // Receptura Tanto
+        ItemStack tanto = createTanto();
+        NamespacedKey tantoRecipeKey = new NamespacedKey(plugin, "tanto_recipe");
+        ShapedRecipe tantoRecipe = new ShapedRecipe(tantoRecipeKey, tanto);
+        tantoRecipe.shape(
+                "  C",
+                " C ",
+                "S  "
+        );
+        tantoRecipe.setIngredient('C', Material.COPPER_INGOT);
+        tantoRecipe.setIngredient('S', Material.STICK);
+
+        if (Bukkit.getRecipe(tantoRecipeKey) == null) {
+            Bukkit.addRecipe(tantoRecipe);
         }
     }
 }
