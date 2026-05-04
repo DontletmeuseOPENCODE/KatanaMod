@@ -4,6 +4,7 @@ A plugin for Paper 1.20.2 for adding custom Katanas with unique effects and mode
 ## Dostępne bronie:
 - **Wakizashi** (Trucizna na 5 sekund przy uderzeniu)
 - **Tantō** (Teleportacja za przeciwnika, 5 sek. cooldown)
+- **Tachi** [Pod prawym przyciskiem myszy dashujesz do przodu (jak spear z enchantem Lunge 3)]
 
 ## Jak pobrać i wgrać moda? (Tutorial)
 
@@ -11,6 +12,7 @@ A plugin for Paper 1.20.2 for adding custom Katanas with unique effects and mode
 1. Pobierz lub zbuduj najnowszy plik `KatanaMod-1.0-SNAPSHOT.jar` (komenda `./gradlew build` w głównym folderze). Plik znajdziesz w katalogu `build/libs`.
 2. Umieść plik `.jar` w folderze `plugins/` swojego serwera Minecraft (wymagany silnik Paper 1.20.2 oraz Java 17).
 3. Zrestartuj serwer (lub użyj komendy `/reload confirm`).
+4. Wszystkie wersje dostepne w /build/libs (opcjonalnie)
 
 ### Część 2: Resource Pack (Klient)
 Aby miecze miały customowe tekstury zamiast wyglądu zwykłego żelaznego miecza:
