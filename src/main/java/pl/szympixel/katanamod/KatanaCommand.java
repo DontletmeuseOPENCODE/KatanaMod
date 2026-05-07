@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,69 +17,167 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class KatanaCommand implements CommandExecutor, TabCompleter {
-    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi", "chisa", "shuriken");
+    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi", "chisa", "smokebomb");
     private final KatanaManager katanaManager;
+    private final JavaPlugin plugin;
+    private String language = "PL";
+    private boolean adminEnabled = true;
 
-    public KatanaCommand(KatanaManager katanaManager) {
+    public KatanaCommand(KatanaManager katanaManager, JavaPlugin plugin) {
         this.katanaManager = katanaManager;
+        this.plugin = plugin;
+    }
+
+    private String getMsg(String key) {
+        if (language.equals("EN")) {
+            switch (key) {
+                case "no_perm": return ChatColor.RED + "You don't have permission to use this command.";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <player> <type>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website";
+                case "player_offline": return ChatColor.RED + "Player '%s' is not online.";
+                case "given": return ChatColor.GREEN + "Gave %s to player %s.";
+                case "received": return ChatColor.GREEN + "You received a katana: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
+                case "unknown": return ChatColor.RED + "Unknown katana. Available: " + String.join(", ", KATANA_TYPES);
+                case "lang_changed": return ChatColor.GREEN + "Language changed to English.";
+                case "version": return ChatColor.AQUA + "KatanaMod Version: " + ChatColor.YELLOW + plugin.getDescription().getVersion() + 
+                                       "\n" + ChatColor.GOLD + "Credits: FriskieBOI & szympixel.pl team";
+                case "admin_on": return ChatColor.GREEN + "Admin commands enabled.";
+                case "admin_off": return ChatColor.RED + "Admin commands disabled.";
+                case "admin_disabled": return ChatColor.RED + "Admin commands are currently disabled by the server.";
+                case "click_link": return ChatColor.AQUA + "Click here to open: ";
+                default: return "";
+            }
+        } else {
+            switch (key) {
+                case "no_perm": return ChatColor.RED + "Nie masz uprawnień do użycia tej komendy.";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <gracz> <typ>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website";
+                case "player_offline": return ChatColor.RED + "Gracz '%s' nie jest online.";
+                case "given": return ChatColor.GREEN + "Przekazano %s graczowi %s.";
+                case "received": return ChatColor.GREEN + "Otrzymałeś katanę: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
+                case "unknown": return ChatColor.RED + "Nieznana katana. Dostępne: " + String.join(", ", KATANA_TYPES);
+                case "lang_changed": return ChatColor.GREEN + "Język został zmieniony na Polski.";
+                case "version": return ChatColor.AQUA + "Wersja KatanaMod: " + ChatColor.YELLOW + plugin.getDescription().getVersion() + 
+                                       "\n" + ChatColor.GOLD + "Autorzy: FriskieBOI & szympixel.pl team";
+                case "admin_on": return ChatColor.GREEN + "Komendy admina zostały włączone.";
+                case "admin_off": return ChatColor.RED + "Komendy admina zostały wyłączone.";
+                case "admin_disabled": return ChatColor.RED + "Komendy admina są obecnie wyłączone przez serwer.";
+                case "click_link": return ChatColor.AQUA + "Kliknij tutaj, aby otworzyć: ";
+                default: return "";
+            }
+        }
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // Linki działają zawsze dla każdego
+        if (args.length > 0) {
+            if (args[0].equalsIgnoreCase("github")) {
+                sendClickableLink(sender, "https://github.com/DontletmeuseOPENCODE/KatanaMod", "GitHub");
+                return true;
+            }
+            if (args[0].equalsIgnoreCase("website")) {
+                sendClickableLink(sender, "https://szympixel.pl", "SzymPixel.pl");
+                return true;
+            }
+        }
+
         if (!sender.hasPermission("katanamod.admin")) {
-            sender.sendMessage(ChatColor.RED + "Nie masz uprawnień do użycia tej komendy.");
+            sender.sendMessage(getMsg("no_perm"));
             return true;
         }
 
-        if (args.length == 0 || !args[0].equalsIgnoreCase("give")) {
-            sender.sendMessage(ChatColor.YELLOW + "--- KatanaMod ---");
-            sender.sendMessage(ChatColor.GRAY + "/katana give <gracz> <" + String.join("|", KATANA_TYPES) + ">");
+        if (args.length == 0) {
+            sender.sendMessage(getMsg("usage"));
             return true;
         }
 
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Użycie: /katana give <gracz> <" + String.join("|", KATANA_TYPES) + ">");
+        if (args[0].equalsIgnoreCase("on")) {
+            adminEnabled = true;
+            sender.sendMessage(getMsg("admin_on"));
             return true;
         }
 
-        Player target = Bukkit.getPlayer(args[1]);
-        if (target == null) {
-            sender.sendMessage(ChatColor.RED + "Gracz '" + args[1] + "' nie jest online.");
+        if (args[0].equalsIgnoreCase("off")) {
+            adminEnabled = false;
+            sender.sendMessage(getMsg("admin_off"));
             return true;
         }
 
-        String type = args[2].toLowerCase();
-        ItemStack katanaItem = null;
-        switch (type) {
-            case "wakizashi": katanaItem = katanaManager.createWakizashi(); break;
-            case "tanto":     katanaItem = katanaManager.createTanto();     break;
-            case "tachi":     katanaItem = katanaManager.createTachi();     break;
-            case "odachi":    katanaItem = katanaManager.createOdachi();    break;
-            case "chisa":     katanaItem = katanaManager.createChisaKatana(); break;
-            case "shuriken":  katanaItem = katanaManager.createShuriken();  break;
-        }
-
-        if (katanaItem == null) {
-            sender.sendMessage(ChatColor.RED + "Nieznana katana. Dostępne: " + String.join(", ", KATANA_TYPES));
+        if (!adminEnabled && !args[0].equalsIgnoreCase("on") && !args[0].equalsIgnoreCase("version") && !args[0].equalsIgnoreCase("language")) {
+            sender.sendMessage(getMsg("admin_disabled"));
             return true;
         }
 
-        target.getInventory().addItem(katanaItem);
-        sender.sendMessage(ChatColor.GREEN + "Przekazano " + type + " graczowi " + target.getName() + ".");
-        target.sendMessage(ChatColor.GREEN + "Otrzymałeś katanę: " + ChatColor.YELLOW + type + ChatColor.GREEN + "!");
+        if (args[0].equalsIgnoreCase("version")) {
+            sender.sendMessage(getMsg("version"));
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("language") && args.length >= 2) {
+            String newLang = args[1].toUpperCase();
+            if (newLang.equals("PL") || newLang.equals("EN")) {
+                this.language = newLang;
+                sender.sendMessage(getMsg("lang_changed"));
+            } else {
+                sender.sendMessage(ChatColor.RED + "Użycie/Usage: /katana language <PL|EN>");
+            }
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("give")) {
+            if (args.length < 3) {
+                sender.sendMessage(getMsg("usage"));
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(String.format(getMsg("player_offline"), args[1]));
+                return true;
+            }
+
+            String type = args[2].toLowerCase();
+            ItemStack katanaItem = null;
+            switch (type) {
+                case "wakizashi": katanaItem = katanaManager.createWakizashi(); break;
+                case "tanto":     katanaItem = katanaManager.createTanto();     break;
+                case "tachi":     katanaItem = katanaManager.createTachi();     break;
+                case "odachi":    katanaItem = katanaManager.createOdachi();    break;
+                case "chisa":     katanaItem = katanaManager.createChisaKatana(); break;
+                case "smokebomb": katanaItem = katanaManager.createSmokeBomb(); break;
+            }
+
+            if (katanaItem == null) {
+                sender.sendMessage(getMsg("unknown"));
+                return true;
+            }
+
+            target.getInventory().addItem(katanaItem);
+            sender.sendMessage(String.format(getMsg("given"), type, target.getName()));
+            target.sendMessage(String.format(getMsg("received"), type));
+            return true;
+        }
+
+        sender.sendMessage(getMsg("usage"));
         return true;
+    }
+
+    private void sendClickableLink(CommandSender sender, String url, String name) {
+        sender.sendMessage(getMsg("click_link") + ChatColor.WHITE + ChatColor.UNDERLINE + url);
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission("katanamod.admin")) return Collections.emptyList();
+        if (!sender.hasPermission("katanamod.admin")) {
+            if (args.length == 1) return filterStarting(Arrays.asList("github", "website"), args[0]);
+            return Collections.emptyList();
+        }
 
         if (args.length == 1) {
-            return filterStarting(Collections.singletonList("give"), args[0]);
+            return filterStarting(Arrays.asList("give", "version", "language", "on", "off", "github", "website"), args[0]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
-            // Zwraca listę graczy online
-            return null;
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("give")) return null;
+            if (args[0].equalsIgnoreCase("language")) return filterStarting(Arrays.asList("PL", "EN"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             return filterStarting(KATANA_TYPES, args[2]);

@@ -72,7 +72,7 @@ public class KatanaManager {
             meta.setDisplayName(ChatColor.YELLOW + "Tachi");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Długi miecz konnicy. Daje przewagę w walce.");
-            lore.add(ChatColor.GOLD + "[PPM] Dash do przodu (Cooldown: 20s)");
+            lore.add(ChatColor.GOLD + "[PPM] Dash do przodu (Cooldown: 5s)");
             lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
@@ -116,7 +116,7 @@ public class KatanaManager {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Krótkie, zabójcze ostrze o krwistym kolorze.");
             lore.add(ChatColor.BLUE + "Efekt uderzenia: Zamrożenie (5s) + Ślepota (10s)");
-            lore.add(ChatColor.GOLD + "Cooldown: 10s");
+            lore.add(ChatColor.GOLD + "Cooldown: 20s");
             lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
@@ -130,22 +130,22 @@ public class KatanaManager {
         return item;
     }
 
-    public ItemStack createShuriken() {
-        ItemStack item = new ItemStack(Material.TRIDENT, 5);
+    public ItemStack createSmokeBomb() {
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.DARK_BLUE + "Shuriken");
+            meta.setDisplayName(ChatColor.GRAY + "Bomba Dymna");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Szybka broń miotana ninja.");
-            lore.add(ChatColor.GOLD + "Efekt: Podpalenie (1s)");
-            lore.add(ChatColor.AQUA + "Ilość: 5 rzutów (Automatyczny reload)");
+            lore.add(ChatColor.GRAY + "Zasłona dymna ninja.");
+            lore.add(ChatColor.WHITE + "Efekt: Tworzy kulę dymu na 10s");
+            lore.add(ChatColor.GOLD + "Cooldown: 20s");
             lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
-            meta.setCustomModelData(10006);
+            meta.setCustomModelData(10007);
 
             NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
-            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "shuriken");
+            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "smokebomb");
 
             item.setItemMeta(meta);
         }
@@ -219,20 +219,36 @@ public class KatanaManager {
             Bukkit.addRecipe(chisaRecipe);
         }
 
-        // Receptura Shuriken
-        ItemStack shuriken = createShuriken();
-        NamespacedKey shurikenRecipeKey = new NamespacedKey(plugin, "shuriken_recipe");
-        ShapedRecipe shurikenRecipe = new ShapedRecipe(shurikenRecipeKey, shuriken);
-        shurikenRecipe.shape(
-                " I ",
-                "ISI",
-                " I "
+        // Receptura Bomby Dymnej
+        ItemStack smoke = createSmokeBomb();
+        NamespacedKey smokeRecipeKey = new NamespacedKey(plugin, "smokebomb_recipe");
+        ShapedRecipe smokeRecipe = new ShapedRecipe(smokeRecipeKey, smoke);
+        smokeRecipe.shape(
+                " G ",
+                "GCG",
+                " G "
         );
-        shurikenRecipe.setIngredient('I', Material.IRON_INGOT);
-        shurikenRecipe.setIngredient('S', Material.IRON_NUGGET);
+        smokeRecipe.setIngredient('G', Material.GUNPOWDER);
+        smokeRecipe.setIngredient('C', Material.COAL);
 
-        if (Bukkit.getRecipe(shurikenRecipeKey) == null) {
-            Bukkit.addRecipe(shurikenRecipe);
+        if (Bukkit.getRecipe(smokeRecipeKey) == null) {
+            Bukkit.addRecipe(smokeRecipe);
+        }
+
+        // Receptura Ōdachi
+        ItemStack odachi = createOdachi();
+        NamespacedKey odachiRecipeKey = new NamespacedKey(plugin, "odachi_recipe");
+        ShapedRecipe odachiRecipe = new ShapedRecipe(odachiRecipeKey, odachi);
+        odachiRecipe.shape(
+                "  D",
+                " D ",
+                "S  "
+        );
+        odachiRecipe.setIngredient('D', Material.DIAMOND);
+        odachiRecipe.setIngredient('S', Material.STICK);
+
+        if (Bukkit.getRecipe(odachiRecipeKey) == null) {
+            Bukkit.addRecipe(odachiRecipe);
         }
     }
 }

@@ -20,14 +20,16 @@ public class KatanaModCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("katanamod.admin")) {
-            sender.sendMessage(ChatColor.RED + "Nie masz uprawnień.");
+            sender.sendMessage(ChatColor.RED + "Nie masz uprawnień do użycia tej komendy.");
             return true;
         }
+
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             katanaHitListener.clearCooldowns();
             sender.sendMessage(ChatColor.GREEN + "[KatanaMod] Cooldowny zresetowane pomyślnie.");
             return true;
         }
+
         sender.sendMessage(ChatColor.YELLOW + "Użycie: /katanamod reload");
         return true;
     }

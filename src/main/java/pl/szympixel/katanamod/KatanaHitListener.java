@@ -12,8 +12,6 @@ import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -40,6 +38,7 @@ public class KatanaHitListener implements Listener {
     private final HashMap<UUID, Long> tachiCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> odachiCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> chisaCooldowns = new HashMap<>();
+    private final HashMap<UUID, Long> smokeBombCooldowns = new HashMap<>();
     private final Set<UUID> dashingPlayers = new HashSet<>();
 
     public KatanaHitListener(JavaPlugin plugin) {
@@ -52,6 +51,7 @@ public class KatanaHitListener implements Listener {
         tachiCooldowns.clear();
         odachiCooldowns.clear();
         chisaCooldowns.clear();
+        smokeBombCooldowns.clear();
         dashingPlayers.clear();
     }
 
@@ -79,7 +79,6 @@ public class KatanaHitListener implements Listener {
         }
     }
 
-    // Usuwa fall damage po dashu Tachi
     @EventHandler
     public void onFallDamage(EntityDamageEvent event) {
         if (event.getCause() != EntityDamageEvent.DamageCause.FALL) return;
@@ -108,9 +107,7 @@ public class KatanaHitListener implements Listener {
         String katanaType = container.get(katanaKey, PersistentDataType.STRING);
 
         if ("wakizashi".equals(katanaType)) {
-            // Trucizna na 5 sekund (100 ticków)
             victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
-
         } else if ("tanto".equals(katanaType)) {
             UUID playerId = player.getUniqueId();
             long currentTime = System.currentTimeMillis();
@@ -130,14 +127,13 @@ public class KatanaHitListener implements Listener {
         } else if ("chisa".equals(katanaType)) {
             UUID playerId = player.getUniqueId();
             long currentTime = System.currentTimeMillis();
-            if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 10000) {
-                // Zamrożenie (Slow 10) na 5 sekund i Blindness na 10 sekund
+            if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 20000) {
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
                 chisaCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.RED + "Cień Chisa spowił twego wroga!");
             } else {
-                long timeLeft = 10000 - (currentTime - chisaCooldowns.get(playerId));
+                long timeLeft = 20000 - (currentTime - chisaCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Moc Chisy gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
         }
@@ -145,23 +141,42 @@ public class KatanaHitListener implements Listener {
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (!(event.getEntity() instanceof Trident)) return;
-        Trident trident = (Trident) event.getEntity();
-        ItemStack item = trident.getItemStack();
-        
-        if (!isKatana(item)) return;
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
-        String type = meta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
-        if (!"shuriken".equals(type)) return;
+        ItemStack item = null;
+        if (event.getEntity() instanceof org.bukkit.entity.ThrownPotion) {
+            item = ((org.bukkit.entity.ThrownPotion) event.getEntity()).getItem();
+        } else if (event.getEntity() instanceof Trident) {
+            item = ((Trident) event.getEntity()).getItemStack();
+        }
 
-        if (event.getHitEntity() != null && event.getHitEntity() instanceof LivingEntity) {
-            LivingEntity victim = (LivingEntity) event.getHitEntity();
-            victim.setFireTicks(20); // 1 sekunda ognia
-            trident.remove(); // Znika po trafieniu
-        } else if (event.getHitBlock() != null) {
-            // Chybienie - teraz też znika, bo mamy reload
-            trident.remove();
+        if (item == null || !isKatana(item)) return;
+        ItemMeta meta = item.getItemMeta();
+        String type = meta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
+
+        if ("smokebomb".equals(type)) {
+            Location loc = event.getEntity().getLocation();
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int ticks = 0;
+                @Override
+                public void run() {
+                    if (ticks >= 200) {
+                        this.cancel();
+                        return;
+                    }
+                    for (int i = 0; i < 8; i++) {
+                        double x = (Math.random() - 0.5) * 5;
+                        double y = (Math.random()) * 4;
+                        double z = (Math.random() - 0.5) * 5;
+                        Location pLoc = loc.clone().add(x, y, z);
+                        loc.getWorld().spawnParticle(org.bukkit.Particle.CAMPFIRE_COSY_SMOKE, pLoc, 1, 0, 0.1, 0, 0.05);
+                        
+                        // Kolorowy kurz (Dust)
+                        org.bukkit.Particle.DustOptions dust = new org.bukkit.Particle.DustOptions(
+                            org.bukkit.Color.fromRGB((int)(Math.random()*255), (int)(Math.random()*255), (int)(Math.random()*255)), 1.5F);
+                        loc.getWorld().spawnParticle(org.bukkit.Particle.REDSTONE, pLoc, 1, dust);
+                    }
+                    ticks += 5;
+                }
+            }.runTaskTimer(plugin, 0L, 5L);
         }
     }
 
@@ -183,85 +198,58 @@ public class KatanaHitListener implements Listener {
         long currentTime = System.currentTimeMillis();
 
         if ("tachi".equals(katanaType)) {
-            if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 20000) {
-                // Delikatniejszy dash (nerfed), ochrona przed fall damage 3 sek.
-                Vector dashVector = player.getLocation().getDirection().normalize().multiply(0.9);
-                dashVector.setY(0.2);
+            if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 5000) {
+                Vector dashVector = player.getLocation().getDirection().normalize().multiply(1.8);
+                dashVector.setY(0.4);
                 player.setVelocity(dashVector);
 
                 dashingPlayers.add(playerId);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> dashingPlayers.remove(playerId), 60L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> dashingPlayers.remove(playerId), 40L);
 
                 tachiCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.YELLOW + "Dash!");
             } else {
-                long timeLeft = 20000 - (currentTime - tachiCooldowns.get(playerId));
+                long timeLeft = 5000 - (currentTime - tachiCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Dash gotowy za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
-
-        } else if ("shuriken".equals(katanaType)) {
-            event.setCancelled(true);
-            
-            PersistentDataContainer container = meta.getPersistentDataContainer();
-            NamespacedKey ammoKey = new NamespacedKey(plugin, "shuriken_ammo");
-            int ammo = container.getOrDefault(ammoKey, PersistentDataType.INTEGER, 5);
-
-            if (ammo > 0) {
-                // Rzut shurikenem
-                Trident shurikenEntity = player.launchProjectile(Trident.class);
-                shurikenEntity.setItem(weapon.clone());
-                shurikenEntity.setShooter(player);
+        } else if ("smokebomb".equals(katanaType)) {
+            if (!smokeBombCooldowns.containsKey(playerId) || currentTime - smokeBombCooldowns.get(playerId) >= 20000) {
+                // Rzut bombą dymną
+                event.setCancelled(true);
+                org.bukkit.entity.ThrownPotion potion = player.launchProjectile(org.bukkit.entity.ThrownPotion.class);
+                potion.setItem(weapon.clone());
                 
-                ammo--;
-                container.set(ammoKey, PersistentDataType.INTEGER, ammo);
-                weapon.setItemMeta(meta);
-                weapon.setAmount(Math.max(1, ammo));
+                // Niewidzialność (5 sekund)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
+                
+                // Ukrywanie zbroi
+                ItemStack[] armor = player.getInventory().getArmorContents();
+                player.getInventory().setArmorContents(new ItemStack[4]);
+                
+                // Przywracanie zbroi po 5 sekundach
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.getInventory().setArmorContents(armor);
+                        player.sendMessage(ChatColor.GRAY + "Twoja kamuflaż wygasł.");
+                    }
+                }, 100L);
 
-                if (ammo == 0) {
-                    player.sendMessage(ChatColor.RED + "Shurikeny się skończyły! Przeładowywanie...");
+                // Zmniejsz ilość
+                if (weapon.getAmount() > 1) {
+                    weapon.setAmount(weapon.getAmount() - 1);
                 } else {
-                    player.sendMessage(ChatColor.DARK_BLUE + "Rzut shurikenem! Zostało: " + ammo);
+                    player.getInventory().setItemInMainHand(null);
                 }
 
-                // Zadanie reloadu
-                new org.bukkit.scheduler.BukkitRunnable() {
-                    int count = 0;
-                    @Override
-                    public void run() {
-                        if (!player.isOnline()) {
-                            this.cancel();
-                            return;
-                        }
-                        
-                        ItemMeta m = weapon.getItemMeta();
-                        if (m == null) {
-                            this.cancel();
-                            return;
-                        }
-                        int currentAmmo = m.getPersistentDataContainer().getOrDefault(ammoKey, PersistentDataType.INTEGER, 0);
-                        
-                        if (currentAmmo < 5) {
-                            currentAmmo++;
-                            m.getPersistentDataContainer().set(ammoKey, PersistentDataType.INTEGER, currentAmmo);
-                            weapon.setItemMeta(m);
-                            weapon.setAmount(currentAmmo);
-                            if (currentAmmo == 5) {
-                                player.sendMessage(ChatColor.GREEN + "Shurikeny w pełni przeładowane!");
-                                this.cancel();
-                            }
-                        } else {
-                            this.cancel();
-                        }
-                    }
-                }.runTaskTimer(plugin, 40L, 40L); // Co 2 sekundy +1 shuriken
-
+                smokeBombCooldowns.put(playerId, currentTime);
+                player.sendMessage(ChatColor.GRAY + "Rzut bombą dymną! Jesteś niewidzialny przez 5s.");
             } else {
-                player.sendMessage(ChatColor.RED + "Poczekaj na przeładowanie!");
+                event.setCancelled(true);
+                long timeLeft = 20000 - (currentTime - smokeBombCooldowns.get(playerId));
+                player.sendMessage(ChatColor.RED + "Bomba dymna gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
-
         } else if ("odachi".equals(katanaType)) {
             if (!odachiCooldowns.containsKey(playerId) || currentTime - odachiCooldowns.get(playerId) >= 30000) {
-                // Znajdź cel przed graczem w zasięgu 10 bloków
                 LivingEntity target = null;
                 for (org.bukkit.entity.Entity nearby : player.getNearbyEntities(10, 5, 10)) {
                     if (nearby instanceof LivingEntity && nearby != player) {
@@ -275,7 +263,6 @@ public class KatanaHitListener implements Listener {
                     return;
                 }
 
-                // Połóż pajęczynę pod i wokół celu
                 Location loc = target.getLocation();
                 loc.getBlock().getRelative(0, -1, 0).setType(Material.COBWEB);
                 loc.getBlock().setType(Material.COBWEB);
@@ -285,38 +272,6 @@ public class KatanaHitListener implements Listener {
             } else {
                 long timeLeft = 30000 - (currentTime - odachiCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Umiejętność gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
-            }
-        }
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        ItemStack current = event.getCurrentItem();
-        ItemStack cursor = event.getCursor();
-
-        if (current == null || cursor == null) return;
-        if (current.getType() != Material.TRIDENT || cursor.getType() != Material.TRIDENT) return;
-
-        if (isKatana(current) && isKatana(cursor)) {
-            ItemMeta currentMeta = current.getItemMeta();
-            ItemMeta cursorMeta = cursor.getItemMeta();
-            
-            String currentType = currentMeta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
-            String cursorType = cursorMeta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
-
-            if ("shuriken".equals(currentType) && "shuriken".equals(cursorType)) {
-                if (event.getAction() == InventoryAction.PLACE_ALL || event.getAction() == InventoryAction.PLACE_ONE) {
-                    int total = current.getAmount() + cursor.getAmount();
-                    if (total <= 16) {
-                        current.setAmount(total);
-                        event.setCursor(null);
-                        event.setCancelled(true);
-                    } else {
-                        current.setAmount(16);
-                        cursor.setAmount(total - 16);
-                        event.setCancelled(true);
-                    }
-                }
             }
         }
     }

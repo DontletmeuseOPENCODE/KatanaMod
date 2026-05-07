@@ -15,7 +15,7 @@ public class KatanaModPlugin extends JavaPlugin {
         KatanaHitListener hitListener = new KatanaHitListener(this);
         getServer().getPluginManager().registerEvents(hitListener, this);
 
-        KatanaCommand katanaCmd = new KatanaCommand(katanaManager);
+        KatanaCommand katanaCmd = new KatanaCommand(katanaManager, this);
         if (getCommand("katana") != null) {
             getCommand("katana").setExecutor(katanaCmd);
             getCommand("katana").setTabCompleter(katanaCmd);
