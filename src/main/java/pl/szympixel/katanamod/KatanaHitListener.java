@@ -160,13 +160,8 @@ public class KatanaHitListener implements Listener {
             victim.setFireTicks(20); // 1 sekunda ognia
             trident.remove(); // Znika po trafieniu
         } else if (event.getHitBlock() != null) {
-            // Chybienie - powrót do gracza
-            if (trident.getShooter() instanceof Player) {
-                Player player = (Player) trident.getShooter();
-                player.getInventory().addItem(item);
-                trident.remove();
-                player.sendMessage(ChatColor.AQUA + "Shuriken powrócił!");
-            }
+            // Chybienie - teraz też znika, bo mamy reload
+            trident.remove();
         }
     }
 
