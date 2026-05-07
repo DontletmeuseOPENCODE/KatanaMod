@@ -39,6 +39,7 @@ public class KatanaHitListener implements Listener {
     private final HashMap<UUID, Long> tantoCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> tachiCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> odachiCooldowns = new HashMap<>();
+    private final HashMap<UUID, Long> chisaCooldowns = new HashMap<>();
     private final Set<UUID> dashingPlayers = new HashSet<>();
 
     public KatanaHitListener(JavaPlugin plugin) {
@@ -50,6 +51,7 @@ public class KatanaHitListener implements Listener {
         tantoCooldowns.clear();
         tachiCooldowns.clear();
         odachiCooldowns.clear();
+        chisaCooldowns.clear();
         dashingPlayers.clear();
     }
 
@@ -126,10 +128,18 @@ public class KatanaHitListener implements Listener {
                 player.sendMessage(ChatColor.RED + "Teleportacja gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
         } else if ("chisa".equals(katanaType)) {
-            // Zamrożenie (Slow 10) na 5 sekund i Blindness na 10 sekund
-            victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
-            victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
-            player.sendMessage(ChatColor.RED + "Cień Chisa spowił twego wroga!");
+            UUID playerId = player.getUniqueId();
+            long currentTime = System.currentTimeMillis();
+            if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 10000) {
+                // Zamrożenie (Slow 10) na 5 sekund i Blindness na 10 sekund
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
+                chisaCooldowns.put(playerId, currentTime);
+                player.sendMessage(ChatColor.RED + "Cień Chisa spowił twego wroga!");
+            } else {
+                long timeLeft = 10000 - (currentTime - chisaCooldowns.get(playerId));
+                player.sendMessage(ChatColor.RED + "Moc Chisy gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+            }
         }
     }
 
@@ -148,7 +158,7 @@ public class KatanaHitListener implements Listener {
         if (event.getHitEntity() != null && event.getHitEntity() instanceof LivingEntity) {
             LivingEntity victim = (LivingEntity) event.getHitEntity();
             victim.setFireTicks(20); // 1 sekunda ognia
-            // Nie wraca - domyślne zachowanie trójzębu bez Loyalty
+            trident.remove(); // Znika po trafieniu
         } else if (event.getHitBlock() != null) {
             // Chybienie - powrót do gracza
             if (trident.getShooter() instanceof Player) {
@@ -192,6 +202,66 @@ public class KatanaHitListener implements Listener {
             } else {
                 long timeLeft = 20000 - (currentTime - tachiCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Dash gotowy za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+            }
+
+        } else if ("shuriken".equals(katanaType)) {
+            event.setCancelled(true);
+            
+            PersistentDataContainer container = meta.getPersistentDataContainer();
+            NamespacedKey ammoKey = new NamespacedKey(plugin, "shuriken_ammo");
+            int ammo = container.getOrDefault(ammoKey, PersistentDataType.INTEGER, 5);
+
+            if (ammo > 0) {
+                // Rzut shurikenem
+                Trident shurikenEntity = player.launchProjectile(Trident.class);
+                shurikenEntity.setItem(weapon.clone());
+                shurikenEntity.setShooter(player);
+                
+                ammo--;
+                container.set(ammoKey, PersistentDataType.INTEGER, ammo);
+                weapon.setItemMeta(meta);
+                weapon.setAmount(Math.max(1, ammo));
+
+                if (ammo == 0) {
+                    player.sendMessage(ChatColor.RED + "Shurikeny się skończyły! Przeładowywanie...");
+                } else {
+                    player.sendMessage(ChatColor.DARK_BLUE + "Rzut shurikenem! Zostało: " + ammo);
+                }
+
+                // Zadanie reloadu
+                new org.bukkit.scheduler.BukkitRunnable() {
+                    int count = 0;
+                    @Override
+                    public void run() {
+                        if (!player.isOnline()) {
+                            this.cancel();
+                            return;
+                        }
+                        
+                        ItemMeta m = weapon.getItemMeta();
+                        if (m == null) {
+                            this.cancel();
+                            return;
+                        }
+                        int currentAmmo = m.getPersistentDataContainer().getOrDefault(ammoKey, PersistentDataType.INTEGER, 0);
+                        
+                        if (currentAmmo < 5) {
+                            currentAmmo++;
+                            m.getPersistentDataContainer().set(ammoKey, PersistentDataType.INTEGER, currentAmmo);
+                            weapon.setItemMeta(m);
+                            weapon.setAmount(currentAmmo);
+                            if (currentAmmo == 5) {
+                                player.sendMessage(ChatColor.GREEN + "Shurikeny w pełni przeładowane!");
+                                this.cancel();
+                            }
+                        } else {
+                            this.cancel();
+                        }
+                    }
+                }.runTaskTimer(plugin, 40L, 40L); // Co 2 sekundy +1 shuriken
+
+            } else {
+                player.sendMessage(ChatColor.RED + "Poczekaj na przeładowanie!");
             }
 
         } else if ("odachi".equals(katanaType)) {

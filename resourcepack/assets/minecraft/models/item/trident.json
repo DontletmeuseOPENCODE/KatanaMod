@@ -1,0 +1,14 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "item/trident"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 10006
+      },
+      "model": "item/katanas/shuriken"
+    }
+  ]
+}

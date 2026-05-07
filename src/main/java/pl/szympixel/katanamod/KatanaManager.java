@@ -116,6 +116,7 @@ public class KatanaManager {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Krótkie, zabójcze ostrze o krwistym kolorze.");
             lore.add(ChatColor.BLUE + "Efekt uderzenia: Zamrożenie (5s) + Ślepota (10s)");
+            lore.add(ChatColor.GOLD + "Cooldown: 10s");
             lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
@@ -130,14 +131,14 @@ public class KatanaManager {
     }
 
     public ItemStack createShuriken() {
-        ItemStack item = new ItemStack(Material.TRIDENT);
+        ItemStack item = new ItemStack(Material.TRIDENT, 5);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_BLUE + "Shuriken");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Szybka broń miotana ninja.");
             lore.add(ChatColor.GOLD + "Efekt: Podpalenie (1s)");
-            lore.add(ChatColor.AQUA + "Powraca przy chybieniu!");
+            lore.add(ChatColor.AQUA + "Ilość: 5 rzutów (Automatyczny reload)");
             lore.add(ChatColor.DARK_GRAY + "Do zdobycia na EVENCIE JAPONSKIM 2026");
             meta.setLore(lore);
 
