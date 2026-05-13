@@ -1,0 +1,38 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "item/iron_sword"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 10001
+      },
+      "model": "item/katanas/wakizashi"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10002
+      },
+      "model": "item/katanas/tanto"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10003
+      },
+      "model": "item/katanas/tachi"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10004
+      },
+      "model": "item/katanas/odachi"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10005
+      },
+      "model": "item/katanas/chisa"
+    }
+  ]
+}

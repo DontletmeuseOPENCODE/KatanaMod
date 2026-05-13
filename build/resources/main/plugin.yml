@@ -1,0 +1,17 @@
+name: KatanaMod
+version: '1.5'
+main: pl.szympixel.katanamod.KatanaModPlugin
+api-version: '1.20'
+commands:
+  katana:
+    description: Zarządzanie katanami
+    usage: /katana give <gracz> <wakizashi|tanto|tachi|odachi>
+    permission: katanamod.admin
+  katanamod:
+    description: Zarządzanie pluginem KatanaMod
+    usage: /katanamod reload
+    permission: katanamod.admin
+permissions:
+  katanamod.admin:
+    description: Pozwala na korzystanie z komend KatanaMod
+    default: op
