@@ -21,6 +21,14 @@ public class KatanaManager {
         this.plugin = plugin;
     }
 
+    public String getKatanaType(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return null;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return null;
+        NamespacedKey key = new NamespacedKey(plugin, KATANA_TAG_KEY);
+        return meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+    }
+
     public ItemStack createWakizashi() {
         ItemStack item = new ItemStack(Material.IRON_SWORD);
         ItemMeta meta = item.getItemMeta();

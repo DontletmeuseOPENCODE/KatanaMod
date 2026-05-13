@@ -4,34 +4,69 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class KatanaModPlugin extends JavaPlugin {
     private KatanaManager katanaManager;
+    private DataManager dataManager;
+    private BossBarManager bossBarManager;
+    private RainbowTask rainbowTask;
 
     @Override
     public void onEnable() {
-        getLogger().info("Inicjalizacja KatanaMod...");
+        getLogger().info("Inicjalizacja KatanaMod 1.5...");
 
+        // Managers
         this.katanaManager = new KatanaManager(this);
+        this.dataManager = new DataManager(this);
+        this.bossBarManager = new BossBarManager(this, dataManager);
+        
+        // Recipes
         this.katanaManager.registerRecipes();
 
+        // Listeners
         KatanaHitListener hitListener = new KatanaHitListener(this);
         getServer().getPluginManager().registerEvents(hitListener, this);
+        
+        PrestigeListener prestigeListener = new PrestigeListener(this, dataManager, bossBarManager, katanaManager);
+        getServer().getPluginManager().registerEvents(prestigeListener, this);
 
+        // Commands
         KatanaCommand katanaCmd = new KatanaCommand(katanaManager, this);
         if (getCommand("katana") != null) {
             getCommand("katana").setExecutor(katanaCmd);
             getCommand("katana").setTabCompleter(katanaCmd);
         }
 
-        KatanaModCommand katanaModCmd = new KatanaModCommand(hitListener);
+        KatanaModCommand katanaModCmd = new KatanaModCommand(hitListener, dataManager, katanaManager, bossBarManager);
         if (getCommand("katanamod") != null) {
             getCommand("katanamod").setExecutor(katanaModCmd);
             getCommand("katanamod").setTabCompleter(katanaModCmd);
         }
 
-        getLogger().info("KatanaMod 1.3 uruchomiony pomyślnie!");
+        // Tasks
+        this.rainbowTask = new RainbowTask(this, dataManager, katanaManager);
+        this.rainbowTask.runTaskTimer(this, 0L, 5L);
+
+        getLogger().info("KatanaMod 1.5 uruchomiony pomyślnie!");
     }
 
     @Override
     public void onDisable() {
+        if (this.rainbowTask != null) {
+            this.rainbowTask.cleanUp();
+        }
+        if (this.dataManager != null) {
+            this.dataManager.save();
+        }
         getLogger().info("KatanaMod został wyłączony.");
+    }
+
+    public KatanaManager getKatanaManager() {
+        return katanaManager;
+    }
+
+    public DataManager getDataManager() {
+        return dataManager;
+    }
+
+    public BossBarManager getBossBarManager() {
+        return bossBarManager;
     }
 }
