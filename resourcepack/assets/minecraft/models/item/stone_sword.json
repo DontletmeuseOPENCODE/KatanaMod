@@ -1,0 +1,14 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "item/stone_sword"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 10010
+      },
+      "model": "item/katanas/merged"
+    }
+  ]
+}

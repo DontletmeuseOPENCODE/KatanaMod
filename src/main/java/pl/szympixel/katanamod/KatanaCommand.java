@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class KatanaCommand implements CommandExecutor, TabCompleter {
-    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi", "chisa", "smokebomb");
+    private static final List<String> KATANA_TYPES = Arrays.asList("wakizashi", "tanto", "tachi", "odachi", "chisa", "smokebomb", "merged");
     private final KatanaManager katanaManager;
     private final JavaPlugin plugin;
     private String language = "PL";
@@ -144,6 +144,7 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
                 case "odachi":    katanaItem = katanaManager.createOdachi();    break;
                 case "chisa":     katanaItem = katanaManager.createChisaKatana(); break;
                 case "smokebomb": katanaItem = katanaManager.createSmokeBomb(); break;
+                case "merged":    katanaItem = new KatanaMergerListener((KatanaModPlugin) plugin, katanaManager).createMergedKatana(); break;
             }
 
             if (katanaItem == null) {
