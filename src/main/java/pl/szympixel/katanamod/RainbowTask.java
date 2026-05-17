@@ -46,18 +46,18 @@ public class RainbowTask extends BukkitRunnable {
                     int prestige = WeaponXPManager.getPrestigeLevel(xp);
                     ChatColor pColor = getPrestigeColor(prestige);
                     String prestigeText = ChatColor.GRAY + "[" + pColor + "Prestiż " + prestige + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, prestigeText, totalPrestige);
+                    updatePlayerNametag(player, prestigeText);
                 } else {
                     String rankText = ChatColor.GRAY + "[" + rank.getColor() + rank.getName() + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, rankText, totalPrestige);
+                    updatePlayerNametag(player, rankText);
                 }
             } else {
                 // Gracz nie trzyma katany - pokazujemy sumę prestiży na tęczowo
                 if (totalPrestige > 0) {
                     String totalText = ChatColor.GRAY + "[" + rainbowColor + totalPrestige + " Prestiży" + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, totalText, totalPrestige);
+                    updatePlayerNametag(player, totalText);
                 } else {
-                    updatePlayerNametag(player, "", totalPrestige);
+                    updatePlayerNametag(player, "");
                 }
             }
         }
@@ -81,7 +81,7 @@ public class RainbowTask extends BukkitRunnable {
         return ChatColor.YELLOW; // 3 i więcej
     }
 
-    private void updatePlayerNametag(Player player, String prefix, int totalPrestige) {
+    private void updatePlayerNametag(Player player, String prefix) {
         Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
         String teamName = "prestige_" + player.getName();
         if (teamName.length() > 16) teamName = teamName.substring(0, 16);
@@ -99,24 +99,13 @@ public class RainbowTask extends BukkitRunnable {
             team.setPrefix(prefix);
         }
 
-        // Sufiks - czyścimy (bez znaczników zdrowia)
+        // Czyścimy sufiks i BELOW_NAME jeśli istnieją (z poprzednich wersji)
         if (!team.getSuffix().isEmpty()) {
             team.setSuffix("");
         }
-
-        // Cel "BELOW_NAME" - pokazywanie ilości prestiży pod nickiem (tylko jeśli > 0)
         org.bukkit.scoreboard.Objective obj = sb.getObjective("prestiges");
-        if (totalPrestige > 0) {
-            if (obj == null) {
-                obj = sb.registerNewObjective("prestiges", "dummy", ChatColor.LIGHT_PURPLE + "Prestiży");
-                obj.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
-            }
-            obj.getScore(player.getName()).setScore(totalPrestige);
-        } else {
-            // Gracz ma 0 prestiży - resetuj jego wynik
-            if (obj != null) {
-                sb.resetScores(player.getName());
-            }
+        if (obj != null) {
+            obj.unregister();
         }
     }
 
