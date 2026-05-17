@@ -28,26 +28,54 @@ public class RainbowTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        ChatColor color = colors[colorIndex];
-        colorIndex = (colorIndex + 1) % colors.length;
-
         for (Player player : Bukkit.getOnlinePlayers()) {
             ItemStack item = player.getInventory().getItemInMainHand();
             String katanaType = katanaManager.getKatanaType(item);
             
             if (katanaType != null) {
+                // Gracz trzyma katanę
                 int xp = dataManager.getXP(player.getUniqueId(), katanaType);
-                if (WeaponXPManager.getRank(xp) == WeaponXPManager.Rank.PRESTIGE) {
+                WeaponXPManager.Rank rank = WeaponXPManager.getRank(xp);
+                
+                if (rank == WeaponXPManager.Rank.PRESTIGE) {
                     int prestige = WeaponXPManager.getPrestigeLevel(xp);
-                    String prestigeText = ChatColor.GRAY + "[" + color + prestige + " PRESTIŻY" + ChatColor.GRAY + "] ";
-                    
+                    ChatColor pColor = getPrestigeColor(prestige);
+                    String prestigeText = ChatColor.GRAY + "[" + pColor + "Prestiż " + prestige + ChatColor.GRAY + "] ";
                     updatePlayerNametag(player, prestigeText);
-                    continue;
+                } else {
+                    String rankText = ChatColor.GRAY + "[" + rank.getColor() + rank.getName() + ChatColor.GRAY + "] ";
+                    updatePlayerNametag(player, rankText);
+                }
+            } else {
+                // Gracz nie trzyma katany - pokazujemy sumę prestiży
+                int totalPrestige = getTotalPrestiges(player.getUniqueId());
+                if (totalPrestige > 0) {
+                    ChatColor pColor = getPrestigeColor(totalPrestige);
+                    String totalText = ChatColor.GRAY + "[" + pColor + totalPrestige + " Prestiży" + ChatColor.GRAY + "] ";
+                    updatePlayerNametag(player, totalText);
+                } else {
+                    updatePlayerNametag(player, "");
                 }
             }
-            // Remove prefix if not holding a prestige katana
-            updatePlayerNametag(player, "");
         }
+    }
+
+    private int getTotalPrestiges(UUID uuid) {
+        int total = 0;
+        String[] katanas = {"wakizashi", "tanto", "tachi", "odachi", "chisa", "smokebomb"};
+        for (String k : katanas) {
+            int xp = dataManager.getXP(uuid, k);
+            if (WeaponXPManager.getRank(xp) == WeaponXPManager.Rank.PRESTIGE) {
+                total += WeaponXPManager.getPrestigeLevel(xp);
+            }
+        }
+        return total;
+    }
+
+    private ChatColor getPrestigeColor(int level) {
+        if (level == 1) return ChatColor.LIGHT_PURPLE;
+        if (level == 2) return ChatColor.RED;
+        return ChatColor.YELLOW; // 3 i więcej
     }
 
     private void updatePlayerNametag(Player player, String prefix) {

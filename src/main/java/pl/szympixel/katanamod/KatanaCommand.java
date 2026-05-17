@@ -32,7 +32,7 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         if (language.equals("EN")) {
             switch (key) {
                 case "no_perm": return ChatColor.RED + "You don't have permission to use this command.";
-                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <player> <type>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <player> <type>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <player> <type> <rank>\n/katana prestige set <player> <type> <number>";
                 case "player_offline": return ChatColor.RED + "Player '%s' is not online.";
                 case "given": return ChatColor.GREEN + "Gave %s to player %s.";
                 case "received": return ChatColor.GREEN + "You received a katana: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
@@ -49,7 +49,7 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         } else {
             switch (key) {
                 case "no_perm": return ChatColor.RED + "Nie masz uprawnień do użycia tej komendy.";
-                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <gracz> <typ>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <gracz> <typ>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <gracz> <typ> <ranga>\n/katana prestige set <gracz> <typ> <numer>";
                 case "player_offline": return ChatColor.RED + "Gracz '%s' nie jest online.";
                 case "given": return ChatColor.GREEN + "Przekazano %s graczowi %s.";
                 case "received": return ChatColor.GREEN + "Otrzymałeś katanę: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
@@ -157,6 +157,80 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("rank")) {
+            if (args.length >= 5 && args[1].equalsIgnoreCase("set")) {
+                Player target = Bukkit.getPlayer(args[2]);
+                if (target == null) {
+                    sender.sendMessage(String.format(getMsg("player_offline"), args[2]));
+                    return true;
+                }
+
+                String type = args[3].toLowerCase();
+                if (!KATANA_TYPES.contains(type)) {
+                    sender.sendMessage(getMsg("unknown"));
+                    return true;
+                }
+
+                String rankName = args[4].toUpperCase();
+                try {
+                    WeaponXPManager.Rank rank = WeaponXPManager.Rank.valueOf(rankName);
+                    DataManager dataManager = ((KatanaModPlugin) plugin).getDataManager();
+                    dataManager.setXP(target.getUniqueId(), type, rank.getMinXP());
+                    
+                    String msg = language.equals("EN") ? 
+                        ChatColor.GREEN + "Rank for " + target.getName() + " on " + type + " set to " + rank.getName() :
+                        ChatColor.GREEN + "Ranga gracza " + target.getName() + " dla " + type + " ustawiona na " + rank.getName();
+                    sender.sendMessage(msg);
+                } catch (IllegalArgumentException e) {
+                    sender.sendMessage(ChatColor.RED + "Nieznana ranga / Unknown rank! Dostępne/Available: WOOD, BRONZE, SILVER, GOLD, PRESTIGE");
+                }
+                return true;
+            } else {
+                sender.sendMessage(ChatColor.RED + "Użycie/Usage: /katana rank set <player> <type> <rank>");
+                return true;
+            }
+        }
+
+        if (args[0].equalsIgnoreCase("prestige")) {
+            if (args.length >= 5 && args[1].equalsIgnoreCase("set")) {
+                Player target = Bukkit.getPlayer(args[2]);
+                if (target == null) {
+                    sender.sendMessage(String.format(getMsg("player_offline"), args[2]));
+                    return true;
+                }
+
+                String type = args[3].toLowerCase();
+                if (!KATANA_TYPES.contains(type)) {
+                    sender.sendMessage(getMsg("unknown"));
+                    return true;
+                }
+
+                try {
+                    int prestigeLevel = Integer.parseInt(args[4]);
+                    if (prestigeLevel < 1 || prestigeLevel > 100) {
+                        sender.sendMessage(ChatColor.RED + "Poziom prestiżu musi być w przedziale od 1 do 100.");
+                        return true;
+                    }
+                    
+                    DataManager dataManager = ((KatanaModPlugin) plugin).getDataManager();
+                    // Prestiż level X to minXP + (X-1)*1000, więc:
+                    int requiredXP = WeaponXPManager.Rank.PRESTIGE.getMinXP() + ((prestigeLevel - 1) * 1000);
+                    dataManager.setXP(target.getUniqueId(), type, requiredXP);
+                    
+                    String msg = language.equals("EN") ? 
+                        ChatColor.GREEN + "Prestige for " + target.getName() + " on " + type + " set to " + prestigeLevel :
+                        ChatColor.GREEN + "Prestiż gracza " + target.getName() + " dla " + type + " ustawiony na " + prestigeLevel;
+                    sender.sendMessage(msg);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(ChatColor.RED + "Podano nieprawidłowy numer prestiżu!");
+                }
+                return true;
+            } else {
+                sender.sendMessage(ChatColor.RED + "Użycie/Usage: /katana prestige set <player> <type> <number>");
+                return true;
+            }
+        }
+
         sender.sendMessage(getMsg("usage"));
         return true;
     }
@@ -173,14 +247,27 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 1) {
-            return filterStarting(Arrays.asList("give", "version", "language", "on", "off", "github", "website"), args[0]);
+            return filterStarting(Arrays.asList("give", "version", "language", "on", "off", "github", "website", "rank", "prestige"), args[0]);
         }
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("give")) return null;
             if (args[0].equalsIgnoreCase("language")) return filterStarting(Arrays.asList("PL", "EN"), args[1]);
+            if (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) return filterStarting(Collections.singletonList("set"), args[1]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            return filterStarting(KATANA_TYPES, args[2]);
+        if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("give")) return filterStarting(KATANA_TYPES, args[2]);
+            if ((args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) && args[1].equalsIgnoreCase("set")) return null; // Player
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) && args[1].equalsIgnoreCase("set")) {
+            return filterStarting(KATANA_TYPES, args[3]);
+        }
+        if (args.length == 5) {
+            if (args[0].equalsIgnoreCase("rank") && args[1].equalsIgnoreCase("set")) {
+                return filterStarting(Arrays.asList("WOOD", "BRONZE", "SILVER", "GOLD", "PRESTIGE"), args[4]);
+            }
+            if (args[0].equalsIgnoreCase("prestige") && args[1].equalsIgnoreCase("set")) {
+                return filterStarting(Arrays.asList("1", "2", "3", "4", "5", "10", "100"), args[4]); // Przykładowe podpowiedzi
+            }
         }
         return Collections.emptyList();
     }
