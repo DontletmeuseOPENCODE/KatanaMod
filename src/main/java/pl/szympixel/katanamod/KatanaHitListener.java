@@ -34,6 +34,7 @@ import java.util.UUID;
 public class KatanaHitListener implements Listener {
     private final JavaPlugin plugin;
     private final NamespacedKey katanaKey;
+    private final NamespacedKey mergedEffectsKey;
     private final HashMap<UUID, Long> tantoCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> tachiCooldowns = new HashMap<>();
     private final HashMap<UUID, Long> odachiCooldowns = new HashMap<>();
@@ -44,6 +45,7 @@ public class KatanaHitListener implements Listener {
     public KatanaHitListener(JavaPlugin plugin) {
         this.plugin = plugin;
         this.katanaKey = new NamespacedKey(plugin, KatanaManager.KATANA_TAG_KEY);
+        this.mergedEffectsKey = new NamespacedKey(plugin, "merged_effects");
     }
 
     public void clearCooldowns() {
@@ -136,6 +138,45 @@ public class KatanaHitListener implements Listener {
                 long timeLeft = 20000 - (currentTime - chisaCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Moc Chisy gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
+        } else if ("merged".equals(katanaType)) {
+            // Merged katana - sprawdź efekty uderzeniowe
+            String effects = container.get(mergedEffectsKey, PersistentDataType.STRING);
+            if (effects != null) {
+                for (String effect : effects.split(",")) {
+                    applyMergedHitEffect(effect, player, victim);
+                }
+            }
+        }
+    }
+
+    private void applyMergedHitEffect(String effect, Player player, LivingEntity victim) {
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        switch (effect) {
+            case "poison":
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+                break;
+            case "teleport":
+                if (!tantoCooldowns.containsKey(playerId) || currentTime - tantoCooldowns.get(playerId) >= 5000) {
+                    Location vLoc = victim.getLocation();
+                    Vector dir = vLoc.getDirection().normalize();
+                    Location behind = vLoc.clone().subtract(dir.multiply(1.5));
+                    behind.setYaw(vLoc.getYaw());
+                    behind.setPitch(vLoc.getPitch());
+                    player.teleport(behind);
+                    tantoCooldowns.put(playerId, currentTime);
+                }
+                break;
+            case "freeze":
+                if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 20000) {
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
+                    chisaCooldowns.put(playerId, currentTime);
+                }
+                break;
+            case "invisible":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
+                break;
         }
     }
 
@@ -273,6 +314,48 @@ public class KatanaHitListener implements Listener {
                 long timeLeft = 30000 - (currentTime - odachiCooldowns.get(playerId));
                 player.sendMessage(ChatColor.RED + "Umiejętność gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
             }
+        } else if ("merged".equals(katanaType)) {
+            // Merged katana - efekty PPM
+            String effects = meta.getPersistentDataContainer().get(mergedEffectsKey, PersistentDataType.STRING);
+            if (effects != null) {
+                for (String effect : effects.split(",")) {
+                    applyMergedPPMEffect(effect, player, playerId, currentTime);
+                }
+            }
+        }
+    }
+
+    private void applyMergedPPMEffect(String effect, Player player, UUID playerId, long currentTime) {
+        switch (effect) {
+            case "dash":
+                if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 5000) {
+                    Vector dashVector = player.getLocation().getDirection().normalize().multiply(1.8);
+                    dashVector.setY(0.4);
+                    player.setVelocity(dashVector);
+                    dashingPlayers.add(playerId);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> dashingPlayers.remove(playerId), 40L);
+                    tachiCooldowns.put(playerId, currentTime);
+                    player.sendMessage(ChatColor.YELLOW + "Dash!");
+                }
+                break;
+            case "cobweb":
+                if (!odachiCooldowns.containsKey(playerId) || currentTime - odachiCooldowns.get(playerId) >= 30000) {
+                    LivingEntity target = null;
+                    for (org.bukkit.entity.Entity nearby : player.getNearbyEntities(10, 5, 10)) {
+                        if (nearby instanceof LivingEntity && nearby != player) {
+                            target = (LivingEntity) nearby;
+                            break;
+                        }
+                    }
+                    if (target != null) {
+                        Location loc = target.getLocation();
+                        loc.getBlock().getRelative(0, -1, 0).setType(Material.COBWEB);
+                        loc.getBlock().setType(Material.COBWEB);
+                        odachiCooldowns.put(playerId, currentTime);
+                        player.sendMessage(ChatColor.DARK_GREEN + "Pajęczyna zastawiona pod " + target.getName() + "!");
+                    }
+                }
+                break;
         }
     }
 }

@@ -27,6 +27,9 @@ public class KatanaModPlugin extends JavaPlugin {
         PrestigeListener prestigeListener = new PrestigeListener(this, dataManager, bossBarManager, katanaManager);
         getServer().getPluginManager().registerEvents(prestigeListener, this);
 
+        KatanaMergerListener mergerListener = new KatanaMergerListener(this, katanaManager);
+        getServer().getPluginManager().registerEvents(mergerListener, this);
+
         // Commands
         KatanaCommand katanaCmd = new KatanaCommand(katanaManager, this);
         if (getCommand("katana") != null) {
