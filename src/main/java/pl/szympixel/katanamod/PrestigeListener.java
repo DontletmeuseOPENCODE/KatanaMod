@@ -26,13 +26,6 @@ public class PrestigeListener implements Listener {
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
-        
-        // Czyszczenie wiadomości o śmierci z formatowania (prefiks/sufiks)
-        String deathMsg = event.getDeathMessage();
-        if (deathMsg != null) {
-            event.setDeathMessage(cleanMessage(victim, deathMsg));
-        }
-
         Player killer = victim.getKiller();
 
         // Handle victim XP loss
@@ -65,38 +58,6 @@ public class PrestigeListener implements Listener {
                 }
             }
         }
-    }
-
-    @EventHandler
-    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
-        String msg = event.getQuitMessage();
-        if (msg != null) {
-            event.setQuitMessage(cleanMessage(event.getPlayer(), msg));
-        }
-    }
-
-    @EventHandler
-    public void onKick(org.bukkit.event.player.PlayerKickEvent event) {
-        String msg = event.getLeaveMessage();
-        if (msg != null) {
-            event.setLeaveMessage(cleanMessage(event.getPlayer(), msg));
-        }
-    }
-
-    private String cleanMessage(Player player, String message) {
-        org.bukkit.scoreboard.Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
-        org.bukkit.scoreboard.Team team = sb.getTeam("prestige_" + player.getName());
-        if (team != null) {
-            String prefix = team.getPrefix();
-            String suffix = team.getSuffix();
-            if (prefix != null && !prefix.isEmpty()) {
-                message = message.replace(prefix, "");
-            }
-            if (suffix != null && !suffix.isEmpty()) {
-                message = message.replace(suffix, "");
-            }
-        }
-        return message;
     }
 
     @EventHandler

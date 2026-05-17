@@ -99,20 +99,25 @@ public class RainbowTask extends BukkitRunnable {
             team.setPrefix(prefix);
         }
 
-        // Sufiks - punkty zdrowia
-        int health = (int) Math.ceil(player.getHealth());
-        String suffix = ChatColor.DARK_GRAY + " | " + ChatColor.RED + "❤ " + health;
-        if (!team.getSuffix().equals(suffix)) {
-            team.setSuffix(suffix);
+        // Sufiks - czyścimy (bez znaczników zdrowia)
+        if (!team.getSuffix().isEmpty()) {
+            team.setSuffix("");
         }
 
-        // Cel "BELOW_NAME" - pokazywanie ilości prestiży pod nickiem
+        // Cel "BELOW_NAME" - pokazywanie ilości prestiży pod nickiem (tylko jeśli > 0)
         org.bukkit.scoreboard.Objective obj = sb.getObjective("prestiges");
-        if (obj == null) {
-            obj = sb.registerNewObjective("prestiges", "dummy", ChatColor.LIGHT_PURPLE + "Prestiży");
-            obj.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
+        if (totalPrestige > 0) {
+            if (obj == null) {
+                obj = sb.registerNewObjective("prestiges", "dummy", ChatColor.LIGHT_PURPLE + "Prestiży");
+                obj.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
+            }
+            obj.getScore(player.getName()).setScore(totalPrestige);
+        } else {
+            // Gracz ma 0 prestiży - resetuj jego wynik
+            if (obj != null) {
+                sb.resetScores(player.getName());
+            }
         }
-        obj.getScore(player.getName()).setScore(totalPrestige);
     }
 
     public void cleanUp() {
