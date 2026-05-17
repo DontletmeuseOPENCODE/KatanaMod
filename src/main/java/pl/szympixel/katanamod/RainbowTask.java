@@ -66,7 +66,7 @@ public class RainbowTask extends BukkitRunnable {
         for (String k : katanas) {
             int xp = dataManager.getXP(uuid, k);
             if (WeaponXPManager.getRank(xp) == WeaponXPManager.Rank.PRESTIGE) {
-                total += WeaponXPManager.getPrestigeLevel(xp);
+                total += 1; // Każda broń z prestiżem daje 1 punkt do ogólnego licznika
             }
         }
         return total;
