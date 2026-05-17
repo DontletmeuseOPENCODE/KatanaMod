@@ -153,8 +153,8 @@ public class KatanaMergerListener implements Listener {
         ItemStack item = new ItemStack(Material.STONE_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.WHITE + "" + ChatColor.BOLD + "混合カタナ" +
-                    ChatColor.RESET + ChatColor.GRAY + " (Merged Katana)");
+            meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "混合カタナ" +
+                    ChatColor.RESET + ChatColor.WHITE + " (Merged Katana)");
 
             // Losuj 2 różne efekty
             List<String> effectPool = new ArrayList<>(Arrays.asList(ALL_EFFECTS));
@@ -164,10 +164,10 @@ public class KatanaMergerListener implements Listener {
 
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "━━━━━━━━━━━━━━━━━━━");
-            lore.add(ChatColor.LIGHT_PURPLE + "Hybrydowa katana stworzona");
-            lore.add(ChatColor.LIGHT_PURPLE + "przez połączenie dwóch ostrzy.");
+            lore.add(ChatColor.GOLD + "Miedziane ostrze wykute");
+            lore.add(ChatColor.GOLD + "z dwóch połączonych katan.");
             lore.add(ChatColor.DARK_GRAY + "━━━━━━━━━━━━━━━━━━━");
-            lore.add(ChatColor.GOLD + "Efekty:");
+            lore.add(ChatColor.YELLOW + "Efekty:");
             lore.add(EFFECT_NAMES.get(effect1));
             lore.add(EFFECT_NAMES.get(effect2));
             lore.add(ChatColor.DARK_GRAY + "━━━━━━━━━━━━━━━━━━━");
