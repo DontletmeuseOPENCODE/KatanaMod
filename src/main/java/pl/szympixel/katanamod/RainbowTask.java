@@ -28,7 +28,12 @@ public class RainbowTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        ChatColor rainbowColor = colors[colorIndex];
+        colorIndex = (colorIndex + 1) % colors.length;
+
         for (Player player : Bukkit.getOnlinePlayers()) {
+            int totalPrestige = getTotalPrestiges(player.getUniqueId());
+            
             ItemStack item = player.getInventory().getItemInMainHand();
             String katanaType = katanaManager.getKatanaType(item);
             
@@ -41,20 +46,18 @@ public class RainbowTask extends BukkitRunnable {
                     int prestige = WeaponXPManager.getPrestigeLevel(xp);
                     ChatColor pColor = getPrestigeColor(prestige);
                     String prestigeText = ChatColor.GRAY + "[" + pColor + "Prestiż " + prestige + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, prestigeText);
+                    updatePlayerNametag(player, prestigeText, totalPrestige);
                 } else {
                     String rankText = ChatColor.GRAY + "[" + rank.getColor() + rank.getName() + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, rankText);
+                    updatePlayerNametag(player, rankText, totalPrestige);
                 }
             } else {
-                // Gracz nie trzyma katany - pokazujemy sumę prestiży
-                int totalPrestige = getTotalPrestiges(player.getUniqueId());
+                // Gracz nie trzyma katany - pokazujemy sumę prestiży na tęczowo
                 if (totalPrestige > 0) {
-                    ChatColor pColor = getPrestigeColor(totalPrestige);
-                    String totalText = ChatColor.GRAY + "[" + pColor + totalPrestige + " Prestiży" + ChatColor.GRAY + "] ";
-                    updatePlayerNametag(player, totalText);
+                    String totalText = ChatColor.GRAY + "[" + rainbowColor + totalPrestige + " Prestiży" + ChatColor.GRAY + "] ";
+                    updatePlayerNametag(player, totalText, totalPrestige);
                 } else {
-                    updatePlayerNametag(player, "");
+                    updatePlayerNametag(player, "", totalPrestige);
                 }
             }
         }
@@ -78,7 +81,7 @@ public class RainbowTask extends BukkitRunnable {
         return ChatColor.YELLOW; // 3 i więcej
     }
 
-    private void updatePlayerNametag(Player player, String prefix) {
+    private void updatePlayerNametag(Player player, String prefix, int totalPrestige) {
         Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
         String teamName = "prestige_" + player.getName();
         if (teamName.length() > 16) teamName = teamName.substring(0, 16);
@@ -95,6 +98,21 @@ public class RainbowTask extends BukkitRunnable {
         if (!team.getPrefix().equals(prefix)) {
             team.setPrefix(prefix);
         }
+
+        // Sufiks - punkty zdrowia
+        int health = (int) Math.ceil(player.getHealth());
+        String suffix = ChatColor.DARK_GRAY + " | " + ChatColor.RED + "❤ " + health;
+        if (!team.getSuffix().equals(suffix)) {
+            team.setSuffix(suffix);
+        }
+
+        // Cel "BELOW_NAME" - pokazywanie ilości prestiży pod nickiem
+        org.bukkit.scoreboard.Objective obj = sb.getObjective("prestiges");
+        if (obj == null) {
+            obj = sb.registerNewObjective("prestiges", "dummy", ChatColor.LIGHT_PURPLE + "Prestiży");
+            obj.setDisplaySlot(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
+        }
+        obj.getScore(player.getName()).setScore(totalPrestige);
     }
 
     public void cleanUp() {
@@ -106,6 +124,10 @@ public class RainbowTask extends BukkitRunnable {
             if (team != null) {
                 team.unregister();
             }
+        }
+        org.bukkit.scoreboard.Objective obj = sb.getObjective("prestiges");
+        if (obj != null) {
+            obj.unregister();
         }
     }
 }
