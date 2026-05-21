@@ -6,6 +6,8 @@ public class KatanaModPlugin extends JavaPlugin {
     private KatanaManager katanaManager;
     private DataManager dataManager;
     private BossBarManager bossBarManager;
+    private ManaManager manaManager;
+    private KatanaEnchantmentManager enchantmentManager;
     private RainbowTask rainbowTask;
 
     @Override
@@ -16,12 +18,14 @@ public class KatanaModPlugin extends JavaPlugin {
         this.katanaManager = new KatanaManager(this);
         this.dataManager = new DataManager(this);
         this.bossBarManager = new BossBarManager(this, dataManager);
+        this.manaManager = new ManaManager(this, katanaManager);
+        this.enchantmentManager = new KatanaEnchantmentManager(this, katanaManager);
         
         // Recipes
         this.katanaManager.registerRecipes();
 
         // Listeners
-        KatanaHitListener hitListener = new KatanaHitListener(this);
+        KatanaHitListener hitListener = new KatanaHitListener(this, manaManager, enchantmentManager);
         getServer().getPluginManager().registerEvents(hitListener, this);
         
         PrestigeListener prestigeListener = new PrestigeListener(this, dataManager, bossBarManager, katanaManager);
@@ -71,5 +75,13 @@ public class KatanaModPlugin extends JavaPlugin {
 
     public BossBarManager getBossBarManager() {
         return bossBarManager;
+    }
+
+    public ManaManager getManaManager() {
+        return manaManager;
+    }
+
+    public KatanaEnchantmentManager getEnchantmentManager() {
+        return enchantmentManager;
     }
 }

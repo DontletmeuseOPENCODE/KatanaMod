@@ -32,7 +32,7 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         if (language.equals("EN")) {
             switch (key) {
                 case "no_perm": return ChatColor.RED + "You don't have permission to use this command.";
-                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <player> <type>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <player> <type> <rank>\n/katana prestige set <player> <type> <number>";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <player> <type>\n/katana enchant <enchant> [level]\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <player> <type> <rank>\n/katana prestige set <player> <type> <number>";
                 case "player_offline": return ChatColor.RED + "Player '%s' is not online.";
                 case "given": return ChatColor.GREEN + "Gave %s to player %s.";
                 case "received": return ChatColor.GREEN + "You received a katana: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
@@ -49,7 +49,7 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         } else {
             switch (key) {
                 case "no_perm": return ChatColor.RED + "Nie masz uprawnień do użycia tej komendy.";
-                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <gracz> <typ>\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <gracz> <typ> <ranga>\n/katana prestige set <gracz> <typ> <numer>";
+                case "usage": return ChatColor.YELLOW + "--- KatanaMod ---" + "\n" + ChatColor.GRAY + "/katana give <gracz> <typ>\n/katana enchant <zaklęcie> [poziom]\n/katana version\n/katana language <PL|EN>\n/katana on/off\n/katana github\n/katana website\n/katana rank set <gracz> <typ> <ranga>\n/katana prestige set <gracz> <typ> <numer>";
                 case "player_offline": return ChatColor.RED + "Gracz '%s' nie jest online.";
                 case "given": return ChatColor.GREEN + "Przekazano %s graczowi %s.";
                 case "received": return ChatColor.GREEN + "Otrzymałeś katanę: " + ChatColor.YELLOW + "%s" + ChatColor.GREEN + "!";
@@ -147,6 +147,23 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
                 case "merged":    katanaItem = new KatanaMergerListener((KatanaModPlugin) plugin, katanaManager).createMergedKatana(); break;
             }
 
+            if (katanaItem == null && type.startsWith("book:")) {
+                String[] parts = type.split(":");
+                if (parts.length >= 2) {
+                    String enchantName = parts[1];
+                    int level = 1;
+                    if (parts.length >= 3) {
+                        try {
+                            level = Integer.parseInt(parts[2]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    KatanaEnchantmentManager em = ((KatanaModPlugin) plugin).getEnchantmentManager();
+                    if (em != null && em.getKey(enchantName) != null) {
+                        katanaItem = em.createEnchantmentBook(enchantName, level);
+                    }
+                }
+            }
+
             if (katanaItem == null) {
                 sender.sendMessage(getMsg("unknown"));
                 return true;
@@ -232,6 +249,47 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
             }
         }
 
+        if (args[0].equalsIgnoreCase("enchant")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage(ChatColor.RED + "Ta komenda może być użyta tylko przez gracza!");
+                return true;
+            }
+            Player player = (Player) sender;
+            ItemStack item = player.getInventory().getItemInMainHand();
+            
+            KatanaEnchantmentManager enchantManager = ((KatanaModPlugin) plugin).getEnchantmentManager();
+            if (enchantManager == null || !enchantManager.isKatana(item)) {
+                sender.sendMessage(ChatColor.RED + "Musisz trzymać katanę w ręce!");
+                return true;
+            }
+            
+            if (args.length < 2) {
+                sender.sendMessage(ChatColor.RED + "Użycie/Usage: /katana enchant <zaklęcie/enchant> [poziom/level]");
+                sender.sendMessage(ChatColor.YELLOW + "Dostępne zaklęcia/Available enchants: " + String.join(", ", enchantManager.getAvailableEnchants()));
+                return true;
+            }
+            
+            String enchantName = args[1].toLowerCase();
+            if (enchantManager.getKey(enchantName) == null) {
+                sender.sendMessage(ChatColor.RED + "Nieznane zaklęcie/Unknown enchant! Dostępne/Available: " + String.join(", ", enchantManager.getAvailableEnchants()));
+                return true;
+            }
+            
+            int level = 1;
+            if (args.length >= 3) {
+                try {
+                    level = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(ChatColor.RED + "Nieprawidłowy poziom / Invalid level!");
+                    return true;
+                }
+            }
+            
+            enchantManager.applyEnchantment(item, enchantName, level);
+            sender.sendMessage(ChatColor.GREEN + "Pomyślnie nałożono zaklęcie / Enchantment applied: " + enchantManager.getDisplayName(enchantName) + " " + level + "!");
+            return true;
+        }
+
         sender.sendMessage(getMsg("usage"));
         return true;
     }
@@ -248,16 +306,37 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 1) {
-            return filterStarting(Arrays.asList("give", "version", "language", "on", "off", "github", "website", "rank", "prestige"), args[0]);
+            return filterStarting(Arrays.asList("give", "enchant", "version", "language", "on", "off", "github", "website", "rank", "prestige"), args[0]);
         }
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("give")) return null;
             if (args[0].equalsIgnoreCase("language")) return filterStarting(Arrays.asList("PL", "EN"), args[1]);
             if (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) return filterStarting(Collections.singletonList("set"), args[1]);
+            if (args[0].equalsIgnoreCase("enchant")) {
+                KatanaEnchantmentManager enchantManager = ((KatanaModPlugin) plugin).getEnchantmentManager();
+                if (enchantManager != null) {
+                    return filterStarting(new ArrayList<>(enchantManager.getAvailableEnchants()), args[1]);
+                }
+            }
         }
         if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("give")) return filterStarting(KATANA_TYPES, args[2]);
+            if (args[0].equalsIgnoreCase("give")) {
+                List<String> allTypes = new ArrayList<>(KATANA_TYPES);
+                allTypes.addAll(Arrays.asList("book:kensai", "book:soulstealer", "book:windblade", "book:meditation", "book:staticshock"));
+                return filterStarting(allTypes, args[2]);
+            }
             if ((args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) && args[1].equalsIgnoreCase("set")) return null; // Player
+            if (args[0].equalsIgnoreCase("enchant")) {
+                KatanaEnchantmentManager enchantManager = ((KatanaModPlugin) plugin).getEnchantmentManager();
+                if (enchantManager != null) {
+                    int maxLvl = enchantManager.getMaxLevel(args[1]);
+                    List<String> lvls = new ArrayList<>();
+                    for (int i = 1; i <= maxLvl; i++) {
+                        lvls.add(String.valueOf(i));
+                    }
+                    return filterStarting(lvls, args[2]);
+                }
+            }
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) && args[1].equalsIgnoreCase("set")) {
             return filterStarting(KATANA_TYPES, args[3]);

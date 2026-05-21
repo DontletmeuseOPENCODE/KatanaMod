@@ -1,0 +1,38 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "item/enchanted_book"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 10021
+      },
+      "model": "item/books/kensai"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10022
+      },
+      "model": "item/books/soulstealer"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10023
+      },
+      "model": "item/books/windblade"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10024
+      },
+      "model": "item/books/meditation"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10025
+      },
+      "model": "item/books/staticshock"
+    }
+  ]
+}
