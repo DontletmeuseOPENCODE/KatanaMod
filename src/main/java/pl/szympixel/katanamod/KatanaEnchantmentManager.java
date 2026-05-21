@@ -212,6 +212,43 @@ public class KatanaEnchantmentManager {
         item.setItemMeta(meta);
     }
 
+    public ItemStack createEnchantmentBook(String enchantName, int level) {
+        ItemStack item = new ItemStack(Material.ENCHANTED_BOOK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String name = getDisplayName(enchantName);
+            String roman = toRoman(level);
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Księga Zaklęcia: " + name + " " + roman);
+            
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Połącz tę księgę z kataną w kowadle");
+            lore.add(ChatColor.GRAY + "Squash & Merge, aby nałożyć ulepszenie.");
+            lore.add(ChatColor.DARK_GRAY + "━━━━━━━━━━━━━━━━━━━");
+            lore.add(ChatColor.LIGHT_PURPLE + "🔮 " + name + " " + roman);
+            lore.add(ChatColor.DARK_GRAY + "━━━━━━━━━━━━━━━━━━━");
+            lore.add(ChatColor.DARK_GRAY + "Squash & Merge™");
+            meta.setLore(lore);
+            
+            int cmd = 10020;
+            switch (enchantName.toLowerCase()) {
+                case "kensai": cmd = 10021; break;
+                case "soulstealer": cmd = 10022; break;
+                case "windblade": cmd = 10023; break;
+                case "meditation": cmd = 10024; break;
+                case "staticshock": cmd = 10025; break;
+            }
+            meta.setCustomModelData(cmd);
+            
+            NamespacedKey typeKey = new NamespacedKey(plugin, "enchant_type");
+            NamespacedKey lvlKey = new NamespacedKey(plugin, "enchant_level");
+            meta.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, enchantName.toLowerCase());
+            meta.getPersistentDataContainer().set(lvlKey, PersistentDataType.INTEGER, level);
+            
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private String toRoman(int num) {
         switch (num) {
             case 1: return "I";

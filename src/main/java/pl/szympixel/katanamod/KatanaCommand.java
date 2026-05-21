@@ -147,6 +147,23 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
                 case "merged":    katanaItem = new KatanaMergerListener((KatanaModPlugin) plugin, katanaManager).createMergedKatana(); break;
             }
 
+            if (katanaItem == null && type.startsWith("book:")) {
+                String[] parts = type.split(":");
+                if (parts.length >= 2) {
+                    String enchantName = parts[1];
+                    int level = 1;
+                    if (parts.length >= 3) {
+                        try {
+                            level = Integer.parseInt(parts[2]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    KatanaEnchantmentManager em = ((KatanaModPlugin) plugin).getEnchantmentManager();
+                    if (em != null && em.getKey(enchantName) != null) {
+                        katanaItem = em.createEnchantmentBook(enchantName, level);
+                    }
+                }
+            }
+
             if (katanaItem == null) {
                 sender.sendMessage(getMsg("unknown"));
                 return true;
@@ -303,7 +320,11 @@ public class KatanaCommand implements CommandExecutor, TabCompleter {
             }
         }
         if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("give")) return filterStarting(KATANA_TYPES, args[2]);
+            if (args[0].equalsIgnoreCase("give")) {
+                List<String> allTypes = new ArrayList<>(KATANA_TYPES);
+                allTypes.addAll(Arrays.asList("book:kensai", "book:soulstealer", "book:windblade", "book:meditation", "book:staticshock"));
+                return filterStarting(allTypes, args[2]);
+            }
             if ((args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("prestige")) && args[1].equalsIgnoreCase("set")) return null; // Player
             if (args[0].equalsIgnoreCase("enchant")) {
                 KatanaEnchantmentManager enchantManager = ((KatanaModPlugin) plugin).getEnchantmentManager();
