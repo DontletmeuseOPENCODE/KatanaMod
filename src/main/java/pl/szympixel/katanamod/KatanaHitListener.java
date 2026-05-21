@@ -230,6 +230,45 @@ public class KatanaHitListener implements Listener {
                     killer.sendMessage(ChatColor.DARK_PURPLE + "+" + (int)regen + " Many (Pożeracz Dusz)");
                 }
             }
+        } else if ("merged".equals(katanaType)) {
+            // Merged katana - sprawdź efekty uderzeniowe
+            String effects = container.get(mergedEffectsKey, PersistentDataType.STRING);
+            if (effects != null) {
+                for (String effect : effects.split(",")) {
+                    applyMergedHitEffect(effect, player, victim);
+                }
+            }
+        }
+    }
+
+    private void applyMergedHitEffect(String effect, Player player, LivingEntity victim) {
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        switch (effect) {
+            case "poison":
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+                break;
+            case "teleport":
+                if (!tantoCooldowns.containsKey(playerId) || currentTime - tantoCooldowns.get(playerId) >= 5000) {
+                    Location vLoc = victim.getLocation();
+                    Vector dir = vLoc.getDirection().normalize();
+                    Location behind = vLoc.clone().subtract(dir.multiply(1.5));
+                    behind.setYaw(vLoc.getYaw());
+                    behind.setPitch(vLoc.getPitch());
+                    player.teleport(behind);
+                    tantoCooldowns.put(playerId, currentTime);
+                }
+                break;
+            case "freeze":
+                if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 20000) {
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
+                    chisaCooldowns.put(playerId, currentTime);
+                }
+                break;
+            case "invisible":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
+                break;
         }
     }
 
