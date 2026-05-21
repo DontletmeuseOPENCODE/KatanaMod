@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -26,7 +27,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Trident;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -35,25 +35,20 @@ public class KatanaHitListener implements Listener {
     private final JavaPlugin plugin;
     private final NamespacedKey katanaKey;
     private final NamespacedKey mergedEffectsKey;
-    private final HashMap<UUID, Long> tantoCooldowns = new HashMap<>();
-    private final HashMap<UUID, Long> tachiCooldowns = new HashMap<>();
-    private final HashMap<UUID, Long> odachiCooldowns = new HashMap<>();
-    private final HashMap<UUID, Long> chisaCooldowns = new HashMap<>();
-    private final HashMap<UUID, Long> smokeBombCooldowns = new HashMap<>();
+    private final ManaManager manaManager;
+    private final KatanaEnchantmentManager enchantmentManager;
     private final Set<UUID> dashingPlayers = new HashSet<>();
 
-    public KatanaHitListener(JavaPlugin plugin) {
+    public KatanaHitListener(JavaPlugin plugin, ManaManager manaManager, KatanaEnchantmentManager enchantmentManager) {
         this.plugin = plugin;
+        this.manaManager = manaManager;
+        this.enchantmentManager = enchantmentManager;
         this.katanaKey = new NamespacedKey(plugin, KatanaManager.KATANA_TAG_KEY);
         this.mergedEffectsKey = new NamespacedKey(plugin, "merged_effects");
     }
 
     public void clearCooldowns() {
-        tantoCooldowns.clear();
-        tachiCooldowns.clear();
-        odachiCooldowns.clear();
-        chisaCooldowns.clear();
-        smokeBombCooldowns.clear();
+        manaManager.clearMana();
         dashingPlayers.clear();
     }
 
@@ -68,7 +63,7 @@ public class KatanaHitListener implements Listener {
     public void onEnchant(EnchantItemEvent event) {
         if (isKatana(event.getItem())) {
             event.setCancelled(true);
-            event.getEnchanter().sendMessage(ChatColor.RED + "Nie można zaklinać katan!");
+            event.getEnchanter().sendMessage(ChatColor.RED + "Nie można zaklinać katan w stole do zaklęć!");
         }
     }
 
@@ -76,6 +71,13 @@ public class KatanaHitListener implements Listener {
     public void onAnvil(PrepareAnvilEvent event) {
         ItemStack first = event.getInventory().getItem(0);
         ItemStack second = event.getInventory().getItem(1);
+        
+        // Zezwól na łączenie katan w naszym mergerze, ale zablokuj normalne kowadło
+        // Jeśli to nie jest nasze GUI "Squash & Merge"
+        if (event.getView().getTitle().equals("Squash & Merge")) {
+            return;
+        }
+        
         if (isKatana(first) || isKatana(second)) {
             event.setResult(null);
         }
@@ -108,35 +110,44 @@ public class KatanaHitListener implements Listener {
 
         String katanaType = container.get(katanaKey, PersistentDataType.STRING);
 
+        // Kensai visual sweeping particle
+        int kensaiLvl = enchantmentManager.getLevel(weapon, "kensai");
+        if (kensaiLvl > 0) {
+            player.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK, victim.getLocation().add(0, 1, 0), 1);
+        }
+
+        // Static Shock enchantment
+        int staticShockLvl = enchantmentManager.getLevel(weapon, "staticshock");
+        if (staticShockLvl > 0) {
+            double chance = staticShockLvl == 1 ? 0.10 : 0.20;
+            if (Math.random() < chance) {
+                triggerStaticShock(player, victim);
+            }
+        }
+
         if ("wakizashi".equals(katanaType)) {
-            victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+            if (manaManager.consumeMana(player, 20.0)) {
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+            }
         } else if ("tanto".equals(katanaType)) {
-            UUID playerId = player.getUniqueId();
-            long currentTime = System.currentTimeMillis();
-            if (!tantoCooldowns.containsKey(playerId) || currentTime - tantoCooldowns.get(playerId) >= 5000) {
+            if (manaManager.consumeMana(player, 25.0)) {
                 Location victimLoc = victim.getLocation();
                 Vector direction = victimLoc.getDirection().normalize();
                 Location behindLoc = victimLoc.clone().subtract(direction.multiply(1.5));
                 behindLoc.setYaw(victimLoc.getYaw());
                 behindLoc.setPitch(victimLoc.getPitch());
                 player.teleport(behindLoc);
-                tantoCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.AQUA + "Teleportacja!");
             } else {
-                long timeLeft = 5000 - (currentTime - tantoCooldowns.get(playerId));
-                player.sendMessage(ChatColor.RED + "Teleportacja gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+                player.sendMessage(ChatColor.RED + "Za mało many! Teleportacja wymaga 25 many.");
             }
         } else if ("chisa".equals(katanaType)) {
-            UUID playerId = player.getUniqueId();
-            long currentTime = System.currentTimeMillis();
-            if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 20000) {
+            if (manaManager.consumeMana(player, 35.0)) {
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
-                chisaCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.RED + "Cień Chisa spowił twego wroga!");
             } else {
-                long timeLeft = 20000 - (currentTime - chisaCooldowns.get(playerId));
-                player.sendMessage(ChatColor.RED + "Moc Chisy gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+                player.sendMessage(ChatColor.RED + "Za mało many! Zamrożenie wymaga 35 many.");
             }
         } else if ("merged".equals(katanaType)) {
             // Merged katana - sprawdź efekty uderzeniowe
@@ -149,34 +160,76 @@ public class KatanaHitListener implements Listener {
         }
     }
 
+    private void triggerStaticShock(Player player, LivingEntity victim) {
+        Location victimLoc = victim.getLocation();
+        victimLoc.getWorld().strikeLightningEffect(victimLoc);
+        victim.damage(2.0, player);
+        
+        int chains = 0;
+        for (org.bukkit.entity.Entity nearby : victim.getNearbyEntities(5, 5, 5)) {
+            if (chains >= 3) break;
+            if (nearby instanceof LivingEntity && nearby != player && nearby != victim) {
+                LivingEntity target = (LivingEntity) nearby;
+                Location targetLoc = target.getLocation();
+                targetLoc.getWorld().strikeLightningEffect(targetLoc);
+                target.damage(2.0, player);
+                chains++;
+            }
+        }
+        player.sendMessage(ChatColor.YELLOW + "✦ Wyładowanie łańcuchowe! ✦");
+    }
+
     private void applyMergedHitEffect(String effect, Player player, LivingEntity victim) {
-        UUID playerId = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
         switch (effect) {
             case "poison":
-                victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+                if (manaManager.consumeMana(player, 20.0)) {
+                    victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+                }
                 break;
             case "teleport":
-                if (!tantoCooldowns.containsKey(playerId) || currentTime - tantoCooldowns.get(playerId) >= 5000) {
+                if (manaManager.consumeMana(player, 25.0)) {
                     Location vLoc = victim.getLocation();
                     Vector dir = vLoc.getDirection().normalize();
                     Location behind = vLoc.clone().subtract(dir.multiply(1.5));
                     behind.setYaw(vLoc.getYaw());
                     behind.setPitch(vLoc.getPitch());
                     player.teleport(behind);
-                    tantoCooldowns.put(playerId, currentTime);
+                    player.sendMessage(ChatColor.AQUA + "Teleportacja!");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Za mało many na teleportację! (Wymagane: 25)");
                 }
                 break;
             case "freeze":
-                if (!chisaCooldowns.containsKey(playerId) || currentTime - chisaCooldowns.get(playerId) >= 20000) {
+                if (manaManager.consumeMana(player, 35.0)) {
                     victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 9));
                     victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 0));
-                    chisaCooldowns.put(playerId, currentTime);
+                    player.sendMessage(ChatColor.RED + "Moc Chisy spowiła twego wroga!");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Za mało many na zamrożenie! (Wymagane: 35)");
                 }
                 break;
             case "invisible":
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
+                if (manaManager.consumeMana(player, 20.0)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
+                }
                 break;
+        }
+    }
+
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event) {
+        LivingEntity victim = event.getEntity();
+        Player killer = victim.getKiller();
+        if (killer != null) {
+            ItemStack weapon = killer.getInventory().getItemInMainHand();
+            if (isKatana(weapon)) {
+                int level = enchantmentManager.getLevel(weapon, "soulstealer");
+                if (level > 0) {
+                    double regen = level == 1 ? 10.0 : 20.0;
+                    manaManager.addMana(killer.getUniqueId(), regen);
+                    killer.sendMessage(ChatColor.DARK_PURPLE + "+" + (int)regen + " Many (Pożeracz Dusz)");
+                }
+            }
         }
     }
 
@@ -225,21 +278,32 @@ public class KatanaHitListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         org.bukkit.event.block.Action action = event.getAction();
-        if (action != org.bukkit.event.block.Action.RIGHT_CLICK_AIR
-                && action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
-
+        
         Player player = event.getPlayer();
         ItemStack weapon = player.getInventory().getItemInMainHand();
         if (!isKatana(weapon)) return;
+
+        // Visual sweeping particle for Kensai swing
+        if (action == org.bukkit.event.block.Action.LEFT_CLICK_AIR || action == org.bukkit.event.block.Action.LEFT_CLICK_BLOCK) {
+            int kensaiLvl = enchantmentManager.getLevel(weapon, "kensai");
+            if (kensaiLvl > 0) {
+                Location loc = player.getEyeLocation().add(player.getLocation().getDirection().multiply(1.5));
+                player.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK, loc, 1);
+            }
+            return;
+        }
+
+        if (action != org.bukkit.event.block.Action.RIGHT_CLICK_AIR
+                && action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+
         ItemMeta meta = weapon.getItemMeta();
         if (meta == null) return;
 
         String katanaType = meta.getPersistentDataContainer().get(katanaKey, PersistentDataType.STRING);
         UUID playerId = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
 
         if ("tachi".equals(katanaType)) {
-            if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 5000) {
+            if (manaManager.consumeMana(player, 30.0)) {
                 Vector dashVector = player.getLocation().getDirection().normalize().multiply(1.8);
                 dashVector.setY(0.4);
                 player.setVelocity(dashVector);
@@ -247,14 +311,12 @@ public class KatanaHitListener implements Listener {
                 dashingPlayers.add(playerId);
                 Bukkit.getScheduler().runTaskLater(plugin, () -> dashingPlayers.remove(playerId), 40L);
 
-                tachiCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.YELLOW + "Dash!");
             } else {
-                long timeLeft = 5000 - (currentTime - tachiCooldowns.get(playerId));
-                player.sendMessage(ChatColor.RED + "Dash gotowy za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+                player.sendMessage(ChatColor.RED + "Za mało many! Dash wymaga 30 many.");
             }
         } else if ("smokebomb".equals(katanaType)) {
-            if (!smokeBombCooldowns.containsKey(playerId) || currentTime - smokeBombCooldowns.get(playerId) >= 20000) {
+            if (manaManager.consumeMana(player, 40.0)) {
                 // Rzut bombą dymną
                 event.setCancelled(true);
                 org.bukkit.entity.ThrownPotion potion = player.launchProjectile(org.bukkit.entity.ThrownPotion.class);
@@ -271,7 +333,7 @@ public class KatanaHitListener implements Listener {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (player.isOnline()) {
                         player.getInventory().setArmorContents(armor);
-                        player.sendMessage(ChatColor.GRAY + "Twoja kamuflaż wygasł.");
+                        player.sendMessage(ChatColor.GRAY + "Twój kamuflaż wygasł.");
                     }
                 }, 100L);
 
@@ -282,15 +344,13 @@ public class KatanaHitListener implements Listener {
                     player.getInventory().setItemInMainHand(null);
                 }
 
-                smokeBombCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.GRAY + "Rzut bombą dymną! Jesteś niewidzialny przez 5s.");
             } else {
                 event.setCancelled(true);
-                long timeLeft = 20000 - (currentTime - smokeBombCooldowns.get(playerId));
-                player.sendMessage(ChatColor.RED + "Bomba dymna gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+                player.sendMessage(ChatColor.RED + "Za mało many! Bomba dymna wymaga 40 many.");
             }
         } else if ("odachi".equals(katanaType)) {
-            if (!odachiCooldowns.containsKey(playerId) || currentTime - odachiCooldowns.get(playerId) >= 30000) {
+            if (manaManager.consumeMana(player, 40.0)) {
                 LivingEntity target = null;
                 for (org.bukkit.entity.Entity nearby : player.getNearbyEntities(10, 5, 10)) {
                     if (nearby instanceof LivingEntity && nearby != player) {
@@ -300,7 +360,8 @@ public class KatanaHitListener implements Listener {
                 }
 
                 if (target == null) {
-                    player.sendMessage(ChatColor.RED + "Brak celu w zasięgu 10 bloków!");
+                    player.sendMessage(ChatColor.RED + "Brak celu w zasięgu 10 bloków! Mana została zwrócona.");
+                    manaManager.addMana(playerId, 40.0);
                     return;
                 }
 
@@ -308,38 +369,38 @@ public class KatanaHitListener implements Listener {
                 loc.getBlock().getRelative(0, -1, 0).setType(Material.COBWEB);
                 loc.getBlock().setType(Material.COBWEB);
 
-                odachiCooldowns.put(playerId, currentTime);
                 player.sendMessage(ChatColor.DARK_GREEN + "Pajęczyna zastawiona pod " + target.getName() + "!");
             } else {
-                long timeLeft = 30000 - (currentTime - odachiCooldowns.get(playerId));
-                player.sendMessage(ChatColor.RED + "Umiejętność gotowa za " + String.format("%.1f", timeLeft / 1000.0) + " s.");
+                player.sendMessage(ChatColor.RED + "Za mało many! Pajęczyna wymaga 40 many.");
             }
         } else if ("merged".equals(katanaType)) {
             // Merged katana - efekty PPM
             String effects = meta.getPersistentDataContainer().get(mergedEffectsKey, PersistentDataType.STRING);
             if (effects != null) {
                 for (String effect : effects.split(",")) {
-                    applyMergedPPMEffect(effect, player, playerId, currentTime);
+                    applyMergedPPMEffect(effect, player);
                 }
             }
         }
     }
 
-    private void applyMergedPPMEffect(String effect, Player player, UUID playerId, long currentTime) {
+    private void applyMergedPPMEffect(String effect, Player player) {
+        UUID playerId = player.getUniqueId();
         switch (effect) {
             case "dash":
-                if (!tachiCooldowns.containsKey(playerId) || currentTime - tachiCooldowns.get(playerId) >= 5000) {
+                if (manaManager.consumeMana(player, 30.0)) {
                     Vector dashVector = player.getLocation().getDirection().normalize().multiply(1.8);
                     dashVector.setY(0.4);
                     player.setVelocity(dashVector);
                     dashingPlayers.add(playerId);
                     Bukkit.getScheduler().runTaskLater(plugin, () -> dashingPlayers.remove(playerId), 40L);
-                    tachiCooldowns.put(playerId, currentTime);
                     player.sendMessage(ChatColor.YELLOW + "Dash!");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Za mało many na Dash! (Wymagane: 30)");
                 }
                 break;
             case "cobweb":
-                if (!odachiCooldowns.containsKey(playerId) || currentTime - odachiCooldowns.get(playerId) >= 30000) {
+                if (manaManager.consumeMana(player, 40.0)) {
                     LivingEntity target = null;
                     for (org.bukkit.entity.Entity nearby : player.getNearbyEntities(10, 5, 10)) {
                         if (nearby instanceof LivingEntity && nearby != player) {
@@ -351,9 +412,13 @@ public class KatanaHitListener implements Listener {
                         Location loc = target.getLocation();
                         loc.getBlock().getRelative(0, -1, 0).setType(Material.COBWEB);
                         loc.getBlock().setType(Material.COBWEB);
-                        odachiCooldowns.put(playerId, currentTime);
                         player.sendMessage(ChatColor.DARK_GREEN + "Pajęczyna zastawiona pod " + target.getName() + "!");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Brak celu w zasięgu 10 bloków! Mana została zwrócona.");
+                        manaManager.addMana(playerId, 40.0);
                     }
+                } else {
+                    player.sendMessage(ChatColor.RED + "Za mało many na Pajęczynę! (Wymagane: 40)");
                 }
                 break;
         }
